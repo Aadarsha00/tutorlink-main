@@ -1,4 +1,5 @@
 import { Navigate, Route, Routes } from "react-router-dom";
+import type { ReactNode } from "react";
 import LoginPage from "../pages/authentication/login-page";
 import { RegisterPage } from "../pages/authentication/register-page";
 import { ActivationPage } from "../pages/authentication/activation-page";
@@ -41,20 +42,78 @@ import { AboutUS } from "@/pages/About";
 import { Contact } from "@/pages/Contact";
 import { TutorsPage } from "@/pages/Tutors";
 import { useAuth } from "@/hooks/useAuth";
+import Navbar from "@/components/Home/Navbar";
+import Footer from "@/components/Home/Footer";
+
+function RouteLoading() {
+  return (
+    <div className="flex min-h-screen items-center justify-center">
+      <div className="h-10 w-10 animate-spin rounded-full border-2 border-gray-300 border-t-teal-600" />
+    </div>
+  );
+}
+
+function PublicPageLayout({ children }: { children: ReactNode }) {
+  return (
+    <div className="min-h-screen bg-white">
+      <Navbar />
+      {children}
+      <Footer />
+    </div>
+  );
+}
 
 function TeacherGigsRoute() {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return <RouteLoading />;
+  }
 
   if (user?.role === "parent") {
     return <Navigate to="/parent/gigs" replace />;
   }
 
-  return (
-    <RoleProtectedRoute allowedRoles={["teacher"]}>
-      <DashboardLayout>
+  if (!user) {
+    return (
+      <PublicPageLayout>
         <GigsPage />
+      </PublicPageLayout>
+    );
+  }
+
+  return (
+    <ProfileRequiredRoute>
+      <RoleProtectedRoute allowedRoles={["teacher"]}>
+        <DashboardLayout>
+          <GigsPage />
+        </DashboardLayout>
+      </RoleProtectedRoute>
+    </ProfileRequiredRoute>
+  );
+}
+
+function GigDetailsRoute() {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return <RouteLoading />;
+  }
+
+  if (!user) {
+    return (
+      <PublicPageLayout>
+        <GigDetailPage />
+      </PublicPageLayout>
+    );
+  }
+
+  return (
+    <ProfileRequiredRoute>
+      <DashboardLayout>
+        <GigDetailPage />
       </DashboardLayout>
-    </RoleProtectedRoute>
+    </ProfileRequiredRoute>
   );
 }
 
@@ -392,21 +451,11 @@ function App() {
 
       <Route
         path="/gigs"
-        element={
-          <ProfileRequiredRoute>
-            <TeacherGigsRoute />
-          </ProfileRequiredRoute>
-        }
+        element={<TeacherGigsRoute />}
       />
       <Route
         path="/gigs/:id"
-        element={
-          <ProfileRequiredRoute>
-            <DashboardLayout>
-              <GigDetailPage />
-            </DashboardLayout>
-          </ProfileRequiredRoute>
-        }
+        element={<GigDetailsRoute />}
       />
       <Route
         path="/parent/gigs/:id"

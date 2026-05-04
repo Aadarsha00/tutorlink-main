@@ -39,6 +39,7 @@ import {
   MessageIcon,
 } from "@hugeicons/core-free-icons";
 import api from "@/services/api";
+import { useAuth } from "@/hooks/useAuth";
 import type { Gig, User, Application, Rating } from "@/services/api";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
@@ -453,6 +454,7 @@ function ApplicationCard({
 }
 
 export default function GigDetailPage() {
+  const { user: authUser } = useAuth();
   const [gig, setGig] = React.useState<Gig | null>(null);
   const [applications, setApplications] = React.useState<Application[]>([]);
   const [user, setUser] = React.useState<User | null>(null);
@@ -469,24 +471,24 @@ export default function GigDetailPage() {
   const navigate = useNavigate();
 
   React.useEffect(() => {
-    loadData();
-  }, []);
+    loadData(authUser);
+  }, [authUser?.id, authUser?.role]);
 
-  const loadData = async () => {
+  const loadData = async (currentUser: User | null) => {
     try {
       setLoading(true);
       const gigId = getGigIdFromUrl();
 
-      const [userData, gigData] = await Promise.all([
-        api.auth.getCurrentUser(),
-        api.gigs.get(gigId),
-      ]);
+      const gigData = currentUser
+        ? await api.gigs.get(gigId).catch(() => api.public.gig(gigId))
+        : await api.public.gig(gigId);
 
-      setUser(userData);
+      setUser(currentUser);
       setGig(gigData);
 
       if (
-        userData.role === "parent" &&
+        currentUser?.role === "parent" &&
+        currentUser.id === gigData.parent &&
         window.location.pathname.startsWith("/gigs/")
       ) {
         navigate(`/parent/gigs/${gigId}`, { replace: true });
@@ -494,7 +496,7 @@ export default function GigDetailPage() {
       }
 
       // Load applications if parent
-      if (userData.role === "parent") {
+      if (currentUser?.role === "parent" && currentUser.id === gigData.parent) {
         const allApplications = await api.applications.list();
         const gigApplications = allApplications.filter((app: Application) => {
           const appGigId = typeof app.gig === "object" ? app.gig.id : app.gig;
@@ -521,7 +523,7 @@ export default function GigDetailPage() {
       }
 
       // Check if teacher has already applied
-      if (userData.role === "teacher") {
+      if (currentUser?.role === "teacher") {
         const myApplications = await api.applications.list();
         const alreadyApplied = myApplications.some((app: Application) => {
           const appGigId = typeof app.gig === "object" ? app.gig.id : app.gig;
@@ -530,7 +532,7 @@ export default function GigDetailPage() {
         setHasApplied(alreadyApplied);
 
         // Check if teacher can rate parent and get existing rating
-        if (gigData.hired_teacher === userData.id) {
+        if (gigData.hired_teacher === currentUser.id) {
           try {
             const [canRateResponse, ratingResponse] = await Promise.all([
               api.ratings.canRate(gigId),
@@ -560,7 +562,7 @@ export default function GigDetailPage() {
 
   const handleApplicationSuccess = () => {
     toast.success("Application submitted successfully!");
-    loadData();
+    loadData(authUser);
   };
 
   const handleRatingSuccess = () => {
@@ -569,7 +571,7 @@ export default function GigDetailPage() {
         ? "Rating updated successfully!"
         : "Rating submitted successfully!"
     );
-    loadData();
+    loadData(authUser);
   };
 
   const handleBack = () => {
@@ -604,7 +606,7 @@ export default function GigDetailPage() {
     );
   }
 
-  if (!gig || !user) {
+  if (!gig) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <div className="text-center">
@@ -618,8 +620,8 @@ export default function GigDetailPage() {
     );
   }
 
-  const isOwner = user.role === "parent" && user.id === gig.parent;
-  const isTeacher = user.role === "teacher";
+  const isOwner = user?.role === "parent" && user.id === gig.parent;
+  const isTeacher = user?.role === "teacher";
   const canApply = isTeacher && gig.status === "open" && !hasApplied;
   const isRateable = ["active", "completed", "disputed"].includes(gig.status);
 
@@ -830,6 +832,34 @@ export default function GigDetailPage() {
               <ApplyDialog gig={gig} onSuccess={handleApplicationSuccess} />
             )}
 
+            {!user && gig.status === "open" && (
+              <Card className="border-teal-200 bg-teal-50">
+                <CardContent className="p-6 text-center">
+                  <HugeiconsIcon
+                    icon={CheckmarkCircle01Icon}
+                    className="mx-auto mb-2 text-teal-700"
+                    size={32}
+                  />
+                  <p className="mb-1 font-semibold text-teal-950">
+                    Log in to apply
+                  </p>
+                  <p className="mb-4 text-sm text-teal-800">
+                    Teacher applications are available after signing in.
+                  </p>
+                  <div className="grid gap-2">
+                    <Button onClick={() => navigate("/login")}>Log In</Button>
+                    <Button
+                      variant="outline"
+                      className="border-teal-300 bg-white hover:bg-teal-100"
+                      onClick={() => navigate("/register")}
+                    >
+                      Register as Teacher
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
             {/* Application Status for Teachers */}
             {isTeacher && hasApplied && (
               <Card className="bg-green-50 border-green-200">
@@ -906,13 +936,15 @@ export default function GigDetailPage() {
                     </div>
                   </div>
 
-                  <Button variant="outline" className="w-full">
-                    <HugeiconsIcon
-                      icon={MessageIcon}
-                      data-icon="inline-start"
-                    />
-                    Message Parent
-                  </Button>
+                  {user && (
+                    <Button variant="outline" className="w-full">
+                      <HugeiconsIcon
+                        icon={MessageIcon}
+                        data-icon="inline-start"
+                      />
+                      Message Parent
+                    </Button>
+                  )}
                 </CardContent>
               </Card>
             )}
@@ -986,6 +1018,7 @@ export default function GigDetailPage() {
             {/* Rating Section for Teachers */}
             {isTeacher &&
               isRateable &&
+              user &&
               gig.hired_teacher === user.id &&
               gig.status === "completed" && (
                 <div className="space-y-4">

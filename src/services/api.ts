@@ -1035,6 +1035,10 @@ export const publicAPI = {
     axiosInstance
       .get<PublicTutorsResponse>("/public/tutors/", { params })
       .then((r) => r.data),
+  gigs: () =>
+    axiosInstance.get<Gigs>("/public/gigs/").then((r) => r.data),
+  gig: (id: number) =>
+    axiosInstance.get<Gig>(`/public/gigs/${id}/`).then((r) => r.data),
   testimonials: () =>
     axiosInstance
       .get<{ results: PublicTestimonial[] }>("/public/testimonials/")

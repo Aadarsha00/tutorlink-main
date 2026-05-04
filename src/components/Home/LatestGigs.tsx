@@ -1,6 +1,5 @@
 import { Link } from "react-router-dom";
 import { Briefcase, CalendarDays, MapPin, Wallet } from "lucide-react";
-import { useAuth } from "@/hooks/useAuth";
 import type { Gig } from "@/services/api";
 
 interface LatestGigsProps {
@@ -14,9 +13,6 @@ const formatMoney = (value: number) =>
   })}`;
 
 export default function LatestGigs({ gigs = [], loading = false }: LatestGigsProps) {
-  const { isAuthenticated } = useAuth();
-  const browsePath = isAuthenticated ? "/gigs" : "/login";
-
   return (
     <section className="bg-slate-50 px-6 py-20">
       <div className="mx-auto max-w-7xl">
@@ -37,7 +33,7 @@ export default function LatestGigs({ gigs = [], loading = false }: LatestGigsPro
             </p>
           </div>
           <Link
-            to={browsePath}
+            to="/gigs"
             className="inline-flex items-center justify-center rounded-full border border-teal-600 px-6 py-3 font-medium text-teal-700 transition hover:bg-teal-50"
           >
             Browse all gigs
@@ -64,7 +60,7 @@ export default function LatestGigs({ gigs = [], loading = false }: LatestGigsPro
             gigs.map((gig) => (
               <Link
                 key={gig.id}
-                to={isAuthenticated ? `/gigs/${gig.id}` : "/login"}
+                to={`/gigs/${gig.id}`}
                 className="group rounded-lg border border-gray-200 bg-white p-6 shadow-sm transition hover:-translate-y-0.5 hover:border-teal-200 hover:shadow-md"
               >
                 <div className="mb-4 flex items-start justify-between gap-3">

@@ -26,6 +26,7 @@ import {
   AlertCircleIcon,
 } from "@hugeicons/core-free-icons";
 import api from "@/services/api";
+import { useAuth } from "@/hooks/useAuth";
 import type {
   Gig,
   User,
@@ -49,12 +50,12 @@ function GigCard({
   application,
 }: {
   gig: Gig;
-  user: User;
+  user: User | null;
   onViewDetails: (id: number) => void;
   application?: Application;
 }) {
-  const isOwner = user.role === "parent" && user.id === gig.parent;
-  const hasApplied = user.role === "teacher" && Boolean(application);
+  const isOwner = user?.role === "parent" && user.id === gig.parent;
+  const hasApplied = user?.role === "teacher" && Boolean(application);
   const applicationStatus = application?.status?.replace(/_/g, " ");
 
   return (
@@ -143,7 +144,7 @@ function GigCard({
           >
             View Details
           </Button>
-          {user.role === "teacher" && gig.status === "open" && (
+          {user?.role === "teacher" && gig.status === "open" && (
             <Button
               className="flex-1"
               variant={hasApplied ? "secondary" : "default"}
@@ -168,6 +169,7 @@ function GigCard({
 }
 
 export default function GigsPage() {
+  const { user: authUser } = useAuth();
   const [gigs, setGigs] = React.useState<Gigs>({
     results: [],
     count: 0,
@@ -193,22 +195,29 @@ export default function GigsPage() {
   const navigate = useNavigate();
 
   React.useEffect(() => {
-    loadData();
-  }, []);
+    loadData(authUser);
+  }, [authUser?.id, authUser?.role]);
 
-  const loadData = async () => {
+  const loadData = async (currentUser: User | null) => {
     try {
       setLoading(true);
-      const [userData, gigsData, subjectsData] = await Promise.all([
-        api.auth.getCurrentUser(),
-        api.gigs.list(),
-        api.profiles.subjects(),
-      ]);
-      setUser(userData);
-      setGigs(gigsData);
-      setSubjects(subjectsData);
+      const gigsData = await api.public.gigs();
+      const subjectNames = Array.from(
+        new Set(gigsData.results.map((gig) => gig.subject).filter(Boolean))
+      ).sort();
 
-      if (userData.role === "teacher") {
+      setUser(currentUser);
+      setGigs(gigsData);
+      setSubjects(
+        subjectNames.map((name, index) => ({
+          id: index + 1,
+          name,
+          description: "",
+          is_active: true,
+        }))
+      );
+
+      if (currentUser?.role === "teacher") {
         const applications = await api.applications.list();
         const nextApplicationsByGigId = applications.reduce<
           Record<number, Application>
@@ -344,6 +353,11 @@ export default function GigsPage() {
 
   const handleCreateGig = async () => {
     setCreateGigBlocked(false);
+
+    if (!user) {
+      navigate("/login");
+      return;
+    }
 
     try {
       const documents = await api.documents.listMyParent();
@@ -767,7 +781,7 @@ export default function GigsPage() {
               <GigCard
                 key={gig.id}
                 gig={gig}
-                user={user!}
+                user={user}
                 onViewDetails={handleViewDetails}
                 application={applicationsByGigId[gig.id]}
               />
