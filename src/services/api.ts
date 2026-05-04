@@ -94,6 +94,7 @@ export interface LandingData {
   subjects: Subject[];
   featured_tutors: TeacherProfile[];
   hero_tutors: TeacherProfile[];
+  latest_gigs: Gig[];
 }
 
 export interface ContactMessageData {
