@@ -1,9 +1,14 @@
+import { AuthProvider } from "./context/auth-context";
+import PageRoutes from "./routes/routes";
+import { Toaster } from "sonner";
+
 export function App() {
   return (
-    <div className="flex items-center justify-center min-h-screen">
-      <div className="font-medium">Hello World</div>
-    </div>
-  )
+    <AuthProvider>
+      <Toaster />
+      <PageRoutes />
+    </AuthProvider>
+  );
 }
 
-export default App
+export default App;
