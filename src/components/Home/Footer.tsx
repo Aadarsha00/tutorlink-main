@@ -38,8 +38,8 @@ const Footer = () => {
             <h3 className="text-gray-900 font-bold text-lg mb-4">Sitemap</h3>
             <ul className="space-y-3">
               <li><Link to="/" className="text-gray-600 hover:text-teal-600 text-sm transition-colors">Home</Link></li>
-              <li><Link to="/about" className="text-gray-600 hover:text-teal-600 text-sm transition-colors">About</Link></li>
-              <li><Link to="/tutor" className="text-gray-600 hover:text-teal-600 text-sm transition-colors">Tutors</Link></li>
+              <li><Link to="/tutor" className="text-gray-600 hover:text-teal-600 text-sm transition-colors">Find Tutors</Link></li>
+              <li><Link to="/gigs" className="text-gray-600 hover:text-teal-600 text-sm transition-colors">Browse Gigs</Link></li>
             </ul>
           </div>
 
@@ -49,7 +49,7 @@ const Footer = () => {
             <ul className="space-y-3">
               <li><Link to="/about" className="text-gray-600 hover:text-teal-600 text-sm transition-colors">About Us</Link></li>
               <li><Link to="/contact" className="text-gray-600 hover:text-teal-600 text-sm transition-colors">Contact</Link></li>
-              <li><Link to="/tutor" className="text-gray-600 hover:text-teal-600 text-sm transition-colors">Tutor</Link></li>
+              <li><Link to="/register?role=teacher" className="text-gray-600 hover:text-teal-600 text-sm transition-colors">Become a Tutor</Link></li>
             </ul>
           </div>
 
