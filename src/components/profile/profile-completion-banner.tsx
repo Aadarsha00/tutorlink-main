@@ -15,7 +15,7 @@ const formatMissingItem = (value: string) => {
     citizenship_front: "Citizenship front",
     citizenship_back: "Citizenship back",
     academic: "Academic certificate",
-    experience: "Experience letter",
+    cv: "CV",
     id_card: "ID card",
     supporting_document: "Supporting document",
     full_name: "Full name",

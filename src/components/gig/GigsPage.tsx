@@ -43,6 +43,19 @@ const REQUIRED_PARENT_DOCUMENT_TYPES: ParentDocumentType[] = [
   "citizenship_back",
 ];
 
+const formatMoney = (value: number) =>
+  `Rs. ${Number(value).toLocaleString("en-NP", {
+    maximumFractionDigits: 0,
+  })}`;
+
+const formatGrade = (grade: string) => {
+  const value = String(grade || "").trim();
+  if (!value) return "Grade not listed";
+  if (/^grade\s+/i.test(value)) return value;
+  if (/^\d+$/.test(value)) return `Grade ${value}`;
+  return value;
+};
+
 function GigCard({
   gig,
   user,
@@ -167,6 +180,158 @@ function GigCard({
     </Card>
   );
 }
+
+function BetterGigCard({
+  gig,
+  user,
+  onViewDetails,
+  application,
+}: {
+  gig: Gig;
+  user: User | null;
+  onViewDetails: (id: number) => void;
+  application?: Application;
+}) {
+  const isOwner = user?.role === "parent" && user.id === gig.parent;
+  const hasApplied = user?.role === "teacher" && Boolean(application);
+  const applicationStatus = application?.status?.replace(/_/g, " ");
+
+  return (
+    <Card
+      className={`overflow-hidden border-gray-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:border-teal-200 hover:shadow-md ${
+        hasApplied ? "border-green-200 bg-green-50/30" : ""
+      }`}
+    >
+      <CardContent className="p-6">
+        <div className="mb-5 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+          <div className="min-w-0 flex-1">
+            <div className="mb-3 flex flex-wrap items-center gap-2">
+              <Badge
+                className={
+                  gig.status === "open"
+                    ? "bg-teal-100 text-teal-800 hover:bg-teal-100"
+                    : "bg-neutral-100 text-neutral-700 hover:bg-neutral-100"
+                }
+              >
+                {gig.status.replace(/_/g, " ")}
+              </Badge>
+              {hasApplied && (
+                <Badge className="bg-green-100 text-green-800 capitalize hover:bg-green-100">
+                  Already applied
+                  {applicationStatus ? `: ${applicationStatus}` : ""}
+                </Badge>
+              )}
+              <span className="text-sm font-semibold text-orange-500">
+                {gig.subject || "Subject not listed"} - {formatGrade(gig.grade)}
+              </span>
+            </div>
+
+            <h3 className="line-clamp-2 text-xl font-bold leading-7 text-gray-900">
+              {gig.title}
+            </h3>
+
+            <p className="mt-3 line-clamp-2 text-sm leading-6 text-gray-600">
+              {gig.description || "Parent is looking for a qualified tutor."}
+            </p>
+          </div>
+
+          <div className="grid min-w-[180px] grid-cols-2 gap-2 rounded-lg bg-gray-50 p-3 text-center lg:w-56">
+            <div>
+              <p className="text-xs font-medium text-gray-500">Applications</p>
+              <p className="mt-1 text-lg font-bold text-gray-900">
+                {gig.applications_count || 0}
+              </p>
+            </div>
+            <div>
+              <p className="text-xs font-medium text-gray-500">Sessions</p>
+              <p className="mt-1 text-lg font-bold text-gray-900">
+                {gig.sessions_per_week}x
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="mb-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+          <div className="rounded-lg border border-gray-100 bg-gray-50 px-3 py-3">
+            <div className="mb-1 flex items-center gap-2 text-xs font-medium text-gray-500">
+              <HugeiconsIcon icon={Location01Icon} size={15} />
+              Location
+            </div>
+            <p className="truncate text-sm font-semibold text-gray-900">
+              {gig.location || "Not listed"}
+            </p>
+          </div>
+          <div className="rounded-lg border border-gray-100 bg-gray-50 px-3 py-3">
+            <div className="mb-1 flex items-center gap-2 text-xs font-medium text-gray-500">
+              <HugeiconsIcon icon={DollarCircleIcon} size={15} />
+              Budget
+            </div>
+            <p className="truncate text-sm font-semibold text-gray-900">
+              {formatMoney(gig.budget_min)} - {formatMoney(gig.budget_max)}
+            </p>
+          </div>
+          <div className="rounded-lg border border-gray-100 bg-gray-50 px-3 py-3">
+            <div className="mb-1 flex items-center gap-2 text-xs font-medium text-gray-500">
+              <HugeiconsIcon icon={Calendar03Icon} size={15} />
+              Duration
+            </div>
+            <p className="text-sm font-semibold text-gray-900">
+              {gig.duration_weeks} weeks
+            </p>
+          </div>
+          <div className="rounded-lg border border-gray-100 bg-gray-50 px-3 py-3">
+            <div className="mb-1 flex items-center gap-2 text-xs font-medium text-gray-500">
+              <HugeiconsIcon icon={BookOpen01Icon} size={15} />
+              Level
+            </div>
+            <p className="truncate text-sm font-semibold text-gray-900">
+              {formatGrade(gig.grade)}
+            </p>
+          </div>
+        </div>
+
+        {gig.parent_profile && !isOwner && (
+          <div className="mb-5 flex flex-wrap items-center gap-2 rounded-lg bg-teal-50 px-3 py-2 text-sm text-teal-900">
+            <HugeiconsIcon icon={UserIcon} size={16} className="text-teal-700" />
+            <span className="font-semibold">{gig.parent_profile.full_name}</span>
+            <span className="text-teal-700">-</span>
+            <span>{gig.parent_profile.location}</span>
+          </div>
+        )}
+
+        <div className="flex flex-col gap-2 border-t border-gray-100 pt-4 sm:flex-row">
+          <Button
+            variant="outline"
+            className="flex-1"
+            onClick={() => onViewDetails(gig.id)}
+          >
+            View Details
+          </Button>
+          {user?.role === "teacher" && gig.status === "open" && (
+            <Button
+              className="flex-1"
+              variant={hasApplied ? "secondary" : "default"}
+              onClick={() => onViewDetails(gig.id)}
+            >
+              {hasApplied ? "Already Applied" : "Apply Now"}
+            </Button>
+          )}
+          {isOwner && (
+            <Button
+              variant="outline"
+              className="flex-1"
+              onClick={() => onViewDetails(gig.id)}
+            >
+              Edit Gig
+            </Button>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+void GigCard;
 
 export default function GigsPage() {
   const { user: authUser } = useAuth();
@@ -778,7 +943,7 @@ export default function GigsPage() {
         ) : (
           <div className="grid grid-cols-1 gap-4">
             {filteredGigs.map((gig) => (
-              <GigCard
+              <BetterGigCard
                 key={gig.id}
                 gig={gig}
                 user={user}

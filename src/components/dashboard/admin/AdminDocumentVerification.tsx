@@ -75,7 +75,7 @@ const DOCUMENT_LABELS: Record<string, string> = {
   citizenship_front: "Citizenship Front",
   citizenship_back: "Citizenship Back",
   academic: "Academic Certificate",
-  experience: "Experience Letter",
+  cv: "CV",
   id_card: "ID Card",
   supporting_document: "Supporting Document",
   other: "Other Document",
@@ -90,7 +90,7 @@ const DOCUMENT_ORDER: Record<string, number> = {
   citizenship_front: 1,
   citizenship_back: 2,
   academic: 3,
-  experience: 4,
+  cv: 4,
   id_card: 5,
   supporting_document: 6,
   other: 7,
@@ -477,11 +477,22 @@ export function AdminDocumentVerification() {
 
     if (previewType === "pdf") {
       return (
-        <iframe
-          src={fileUrl}
-          title={activeDocument.file_name}
-          className="h-[70vh] w-full rounded-lg border"
-        />
+        <div className="flex h-[70vh] flex-col items-center justify-center rounded-lg border bg-neutral-50 p-8 text-center">
+          <HugeiconsIcon
+            icon={FileViewIcon}
+            size={48}
+            className="mb-4 text-muted-foreground"
+          />
+          <p className="font-medium">PDF Preview</p>
+          <p className="mt-2 text-sm text-muted-foreground mb-4">
+            PDF files cannot be previewed in the browser due to security restrictions.
+          </p>
+          <Button asChild>
+            <a href={fileUrl} target="_blank" rel="noreferrer">
+              Open PDF in New Tab
+            </a>
+          </Button>
+        </div>
       );
     }
 

@@ -29,7 +29,7 @@ const DOCUMENT_LABELS: Record<string, string> = {
   citizenship_front: "Citizenship front",
   citizenship_back: "Citizenship back",
   academic: "Academic certificate",
-  experience: "Experience letter",
+  cv: "CV",
   id_card: "ID card",
   supporting_document: "Supporting document",
   other: "Other document",
@@ -37,7 +37,7 @@ const DOCUMENT_LABELS: Record<string, string> = {
 
 const getRequiredDocumentTypes = (role: "teacher" | "parent") =>
   role === "teacher"
-    ? ["citizenship_front", "citizenship_back", "academic", "experience"]
+    ? ["citizenship_front", "citizenship_back", "academic", "cv"]
     : ["citizenship_front", "citizenship_back", "id_card", "supporting_document"];
 
 const getLatestDocumentsByType = (documents: UserDocument[]) => {

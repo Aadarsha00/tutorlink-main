@@ -31,7 +31,7 @@ type TeacherDocumentType =
   | "citizenship_front"
   | "citizenship_back"
   | "academic"
-  | "experience";
+  | "cv";
 type TeacherDocumentMap = Partial<
   Record<TeacherDocumentType, VerificationDocument>
 >;
@@ -64,7 +64,7 @@ const isTeacherDocumentType = (value: string): value is TeacherDocumentType =>
     "citizenship_front",
     "citizenship_back",
     "academic",
-    "experience",
+    "cv",
   ].includes(value);
 
 const formatApiError = (err: unknown) => {
@@ -136,7 +136,7 @@ export function TeacherProfileSetupPage() {
     citizenship_front?: File;
     citizenship_back?: File;
     academic?: File;
-    experience?: File;
+    cv?: File;
   }>({});
 
   const [isEdit, setIsEdit] = React.useState(false);
@@ -314,6 +314,9 @@ export function TeacherProfileSetupPage() {
       if (!pendingFiles.academic && !documents.academic) {
         errors.push("Academic Certificate document is required");
       }
+      if (!pendingFiles.cv && !documents.cv) {
+        errors.push("CV document is required");
+      }
     }
 
     return { valid: errors.length === 0, errors };
@@ -366,10 +369,10 @@ export function TeacherProfileSetupPage() {
         if (pendingFiles.academic) {
           await api.documents.uploadTeacher(pendingFiles.academic, "academic");
         }
-        if (pendingFiles.experience) {
+        if (pendingFiles.cv) {
           await api.documents.uploadTeacher(
-            pendingFiles.experience,
-            "experience",
+            pendingFiles.cv,
+            "cv",
           );
         }
       } else {
@@ -407,9 +410,9 @@ export function TeacherProfileSetupPage() {
             api.documents.uploadTeacher(pendingFiles.academic, "academic"),
           );
         }
-        if (pendingFiles.experience) {
+        if (pendingFiles.cv) {
           uploadPromises.push(
-            api.documents.uploadTeacher(pendingFiles.experience, "experience"),
+            api.documents.uploadTeacher(pendingFiles.cv, "cv"),
           );
         }
 
@@ -819,22 +822,22 @@ export function TeacherProfileSetupPage() {
                     />
 
                     <FileUpload
-                      documentType="experience"
-                      documentLabel="Experience Letter (Optional)"
+                      documentType="cv"
+                      documentLabel="CV *"
                       userRole="teacher"
                       deferUpload={!isEdit}
-                      existingDocument={documents.experience}
+                      existingDocument={documents.cv}
                       onFileSelected={(file) =>
-                        handleFileSelect("experience", file)
+                        handleFileSelect("cv", file)
                       }
                       onFileRemoved={() =>
                         setPendingFiles((prev) => ({
                           ...prev,
-                          experience: undefined,
+                          cv: undefined,
                         }))
                       }
                       onUploadSuccess={(doc) =>
-                        handleDocumentUpload("experience", doc)
+                        handleDocumentUpload("cv", doc)
                       }
                     />
                   </div>

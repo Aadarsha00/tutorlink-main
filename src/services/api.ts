@@ -123,6 +123,21 @@ export interface PublicTutorsResponse {
   locations: string[];
 }
 
+export interface PublicTutorReview {
+  id: number;
+  parent_name: string;
+  score: number;
+  review: string;
+  gig_title: string;
+  subject: string;
+  grade: string;
+  created_at: string;
+}
+
+export interface PublicTutorDetails extends TeacherProfile {
+  reviews: PublicTutorReview[];
+}
+
 export interface PublicTutorFilters {
   search?: string;
   subject_id?: string;
@@ -171,7 +186,7 @@ export type DocumentType =
   | "citizenship_front"
   | "citizenship_back"
   | "academic"
-  | "experience"
+  | "cv"
   | "other";
 export type ParentDocumentType =
   | "citizenship_front"
@@ -344,6 +359,87 @@ export interface Application {
 
 export interface Applications {
   results: Application[];
+  count: number;
+  next: string | null;
+  previous: string | null;
+}
+
+/* ======================================================
+   JOB TYPES
+====================================================== */
+export type JobStatus = "draft" | "open" | "closed" | "cancelled";
+export type JobApplicationStatus =
+  | "pending"
+  | "reviewed"
+  | "shortlisted"
+  | "accepted"
+  | "rejected"
+  | "withdrawn";
+
+export interface Job {
+  id: number;
+  created_by: number;
+  title: string;
+  school_name: string;
+  school_address: string;
+  school_contact_email?: string;
+  school_contact_phone?: string;
+  subject: string;
+  grade?: string;
+  employment_type: string;
+  description: string;
+  requirements: string;
+  salary_min?: number | null;
+  salary_max?: number | null;
+  location: string;
+  deadline?: string | null;
+  status: JobStatus;
+  applications_count?: number;
+  has_applied?: boolean;
+  created_at: string;
+  updated_at: string;
+  published_at?: string | null;
+  closed_at?: string | null;
+}
+
+export interface Jobs {
+  results: Job[];
+  count: number;
+  next: string | null;
+  previous: string | null;
+}
+
+export interface JobDetails {
+  id: number;
+  title: string;
+  school_name: string;
+  subject: string;
+  grade?: string;
+  employment_type: string;
+  salary_min?: number | null;
+  salary_max?: number | null;
+  location: string;
+  deadline?: string | null;
+  status: string;
+  created_at: string;
+}
+
+export interface JobApplication {
+  id: number;
+  job: number;
+  job_details?: JobDetails;
+  teacher: number;
+  teacher_profile?: TeacherProfile;
+  cv_document?: VerificationDocument;
+  cover_letter: string;
+  status: JobApplicationStatus;
+  admin_notes?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface JobApplications {
+  results: JobApplication[];
   count: number;
   next: string | null;
   previous: string | null;
@@ -1035,6 +1131,10 @@ export const publicAPI = {
     axiosInstance
       .get<PublicTutorsResponse>("/public/tutors/", { params })
       .then((r) => r.data),
+  tutor: (id: number) =>
+    axiosInstance
+      .get<PublicTutorDetails>(`/public/tutors/${id}/`)
+      .then((r) => r.data),
   gigs: () =>
     axiosInstance.get<Gigs>("/public/gigs/").then((r) => r.data),
   gig: (id: number) =>
@@ -1354,6 +1454,54 @@ export const applicationAPI = {
 };
 
 /* ======================================================
+   JOBS API
+====================================================== */
+
+export const jobAPI = {
+  list: (params?: any) =>
+    axiosInstance.get<Jobs>("/jobs/", { params }).then((r) => r.data),
+  get: (id: number) =>
+    axiosInstance.get<Job>(`/jobs/${id}/`).then((r) => r.data),
+  create: (data: Partial<Job>) =>
+    axiosInstance.post<Job>("/jobs/", data).then((r) => r.data),
+  update: (id: number, data: Partial<Job>) =>
+    axiosInstance.put<Job>(`/jobs/${id}/`, data).then((r) => r.data),
+  patch: (id: number, data: Partial<Job>) =>
+    axiosInstance.patch<Job>(`/jobs/${id}/`, data).then((r) => r.data),
+  delete: (id: number) => axiosInstance.delete(`/jobs/${id}/`),
+  applications: (id: number) =>
+    axiosInstance
+      .get<JobApplication[]>(`/jobs/${id}/applications/`)
+      .then((r) => r.data),
+};
+
+export const jobApplicationAPI = {
+  list: () =>
+    axiosInstance
+      .get<JobApplications>("/job-applications/")
+      .then((r) => r.data.results),
+  get: (id: number) =>
+    axiosInstance
+      .get<JobApplication>(`/job-applications/${id}/`)
+      .then((r) => r.data),
+  create: (data: { job: number; cover_letter?: string }) =>
+    axiosInstance
+      .post<JobApplication>("/job-applications/", data)
+      .then((r) => r.data),
+  patch: (
+    id: number,
+    data: { status?: JobApplicationStatus; admin_notes?: string }
+  ) =>
+    axiosInstance
+      .patch<JobApplication>(`/job-applications/${id}/`, data)
+      .then((r) => r.data),
+  withdraw: (id: number) =>
+    axiosInstance
+      .post<JobApplication>(`/job-applications/${id}/withdraw/`)
+      .then((r) => r.data),
+};
+
+/* ======================================================
    PAYMENTS API (Premium Subscriptions)
 ====================================================== */
 
@@ -1620,6 +1768,8 @@ export default {
   profiles: profileAPI,
   gigs: gigAPI,
   applications: applicationAPI,
+  jobs: jobAPI,
+  jobApplications: jobApplicationAPI,
   payments: paymentAPI,
   notifications: notificationAPI,
   ratings: ratingAPI,

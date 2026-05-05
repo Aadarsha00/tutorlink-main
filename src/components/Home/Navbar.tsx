@@ -18,7 +18,9 @@ const Navbar = () => {
     <header className="w-full bg-white border-b border-gray-100">
       <div className="max-w-7xl mx-auto px-6 py-5 flex items-center justify-between">
         {/* Logo */}
-        <img src="/logo.png" alt="Tutorr Logo" className="h-10 w-auto" />
+        <Link to="/" aria-label="Go to home" className="inline-flex">
+          <img src="/logo.png" alt="TutorSpot Logo" className="h-10 w-auto" />
+        </Link>
 
         {/* Desktop Nav */}
         <nav className="hidden lg:flex items-center gap-10 text-base font-medium text-gray-700">
@@ -67,6 +69,7 @@ const Navbar = () => {
             <Link
               key={link.name}
               to={link.href}
+              onClick={() => setOpen(false)}
               className={`block font-medium transition ${
                 currentPath === link.href ? "text-orange-500" : "text-gray-700"
               }`}
@@ -77,6 +80,7 @@ const Navbar = () => {
           {isAuthenticated ? (
             <Link
               to="/dashboard"
+              onClick={() => setOpen(false)}
               className="mt-2 block w-full px-6 py-2 font-medium text-white bg-black rounded-lg hover:bg-gray-800 transition text-center"
             >
               Dashboard
@@ -84,6 +88,7 @@ const Navbar = () => {
           ) : (
             <Link
               to="/login"
+              onClick={() => setOpen(false)}
               className="mt-2 block w-full px-6 py-2 font-medium text-white bg-black rounded-lg hover:bg-gray-800 transition text-center"
             >
               Login

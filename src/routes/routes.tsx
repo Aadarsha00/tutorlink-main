@@ -37,10 +37,17 @@ import PremiumVerifyPage from "@/pages/payments/premium-verify-page";
 import AdminActiveGigs from "@/pages/dashboard/admin/admin-active-gigs";
 import AdminDisputedGigs from "@/pages/dashboard/admin/admin-reported-gigs";
 import EditGigPage from "@/pages/gig/edit-gig";
+import JobsPage from "@/pages/jobs";
+import JobDetailPage from "@/pages/jobs/job-detail";
+import ApplyJobPage from "@/pages/jobs/apply-job";
+import AdminJobsPage from "@/pages/dashboard/admin/admin-jobs";
+import AdminJobForm from "@/pages/dashboard/admin/admin-job-form";
+import AdminJobApplications from "@/pages/dashboard/admin/admin-job-applications";
 import { Home } from "@/pages/Home";
 import { AboutUS } from "@/pages/About";
 import { Contact } from "@/pages/Contact";
 import { TutorsPage } from "@/pages/Tutors";
+import { TutorDetailsPage } from "@/pages/TutorDetails";
 import { useAuth } from "@/hooks/useAuth";
 import Navbar from "@/components/Home/Navbar";
 import Footer from "@/components/Home/Footer";
@@ -323,6 +330,48 @@ function App() {
         }
       />
       <Route
+        path="/jobs"
+        element={
+          <ProtectedRoute>
+            <ProfileRequiredRoute>
+              <RoleProtectedRoute allowedRoles={["teacher"]}>
+                <DashboardLayout>
+                  <JobsPage />
+                </DashboardLayout>
+              </RoleProtectedRoute>
+            </ProfileRequiredRoute>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/jobs/:id"
+        element={
+          <ProtectedRoute>
+            <ProfileRequiredRoute>
+              <RoleProtectedRoute allowedRoles={["teacher"]}>
+                <DashboardLayout>
+                  <JobDetailPage />
+                </DashboardLayout>
+              </RoleProtectedRoute>
+            </ProfileRequiredRoute>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/jobs/:id/apply"
+        element={
+          <ProtectedRoute>
+            <ProfileRequiredRoute>
+              <RoleProtectedRoute allowedRoles={["teacher"]}>
+                <DashboardLayout>
+                  <ApplyJobPage />
+                </DashboardLayout>
+              </RoleProtectedRoute>
+            </ProfileRequiredRoute>
+          </ProtectedRoute>
+        }
+      />
+      <Route
         path="/teacher/premium"
         element={
           <ProtectedRoute>
@@ -413,6 +462,54 @@ function App() {
         }
       />
       <Route
+        path="admin/jobs"
+        element={
+          <ProtectedRoute>
+            <RoleProtectedRoute allowedRoles={["admin"]}>
+              <DashboardLayout>
+                <AdminJobsPage />
+              </DashboardLayout>
+            </RoleProtectedRoute>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="admin/jobs/new"
+        element={
+          <ProtectedRoute>
+            <RoleProtectedRoute allowedRoles={["admin"]}>
+              <DashboardLayout>
+                <AdminJobForm />
+              </DashboardLayout>
+            </RoleProtectedRoute>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="admin/jobs/:id/edit"
+        element={
+          <ProtectedRoute>
+            <RoleProtectedRoute allowedRoles={["admin"]}>
+              <DashboardLayout>
+                <AdminJobForm />
+              </DashboardLayout>
+            </RoleProtectedRoute>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="admin/jobs/:id/applications"
+        element={
+          <ProtectedRoute>
+            <RoleProtectedRoute allowedRoles={["admin"]}>
+              <DashboardLayout>
+                <AdminJobApplications />
+              </DashboardLayout>
+            </RoleProtectedRoute>
+          </ProtectedRoute>
+        }
+      />
+      <Route
         path="admin/users"
         element={
           <ProtectedRoute>
@@ -474,6 +571,7 @@ function App() {
       <Route path="/" element={<Home />} />
       <Route path="/about" element={<AboutUS />} />
       <Route path="/tutor" element={<TutorsPage />} />
+      <Route path="/tutor/:id" element={<TutorDetailsPage />} />
       <Route path="/contact" element={<Contact />} />
 
       {/* 404 */}

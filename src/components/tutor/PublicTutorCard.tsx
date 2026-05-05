@@ -33,6 +33,7 @@ export function PublicTutorCard({ tutor }: { tutor: TeacherProfile }) {
   const { user } = useAuth();
   const subjects = tutor.subjects.slice(0, 3);
   const rating = Number(tutor.average_rating || 0);
+  const detailPath = `/tutor/${tutor.id}`;
 
   return (
     <Card className="flex h-full overflow-hidden border-gray-200 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-md">
@@ -52,9 +53,11 @@ export function PublicTutorCard({ tutor }: { tutor: TeacherProfile }) {
                 </Badge>
               )}
             </div>
-            <h2 className="line-clamp-1 text-lg font-bold text-gray-900">
-              {tutorName(tutor)}
-            </h2>
+            <Link to={detailPath} className="block">
+              <h2 className="line-clamp-1 text-lg font-bold text-gray-900 hover:text-teal-700">
+                {tutorName(tutor)}
+              </h2>
+            </Link>
             <p className="mt-1 text-sm font-semibold text-teal-700">
               {formatRate(tutor)}
             </p>
@@ -122,7 +125,7 @@ export function PublicTutorCard({ tutor }: { tutor: TeacherProfile }) {
               </Link>
             </Button>
             <Button variant="outline" asChild size="sm">
-              <Link to={user ? "/dashboard" : "/register"}>View Details</Link>
+              <Link to={detailPath}>View Details</Link>
             </Button>
           </div>
         </div>

@@ -6,6 +6,7 @@ import Navbar from "../components/Home/Navbar";
 import StudentTestimonialsSection from "../components/Home/Testimonial";
 import PremiumTutorsShowcase from "../components/Home/Tutors";
 import LatestGigs from "../components/Home/LatestGigs";
+import JobsTeaser from "../components/Home/JobsTeaser";
 import PerfectTutorSection from "../components/Home/PerfectTutor";
 import CTASection from "../components/Home/CTA";
 import api, { type LandingData } from "@/services/api";
@@ -50,6 +51,7 @@ export const Home: React.FC = () => {
         gigs={landingData?.latest_gigs}
         loading={loadingLanding}
       />
+      <JobsTeaser />
       <StudentTestimonialsSection />
       <CTASection />
       <Footer />

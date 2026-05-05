@@ -131,7 +131,7 @@ export function TeacherDocumentManagement() {
       citizenship_front: "Citizenship Front",
       citizenship_back: "Citizenship Back",
       academic: "Academic Certificates",
-      experience: "Experience Letters",
+      cv: "CV",
     };
     return labels[type] || type;
   };
@@ -204,7 +204,7 @@ export function TeacherDocumentManagement() {
           "citizenship_front",
           "citizenship_back",
           "academic",
-          "experience",
+          "cv",
         ].map((docType) => {
           const docsOfType = documentsByType[docType] || [];
           const latestDoc = docsOfType[0];
@@ -232,8 +232,8 @@ export function TeacherDocumentManagement() {
                         "Upload the back side of your citizenship certificate or national ID"}
                       {docType === "academic" &&
                         "Upload your degrees, certificates, or transcripts"}
-                      {docType === "experience" &&
-                        "Upload experience letters or references"}
+                      {docType === "cv" &&
+                        "Upload your Curriculum Vitae"}
                     </CardDescription>
                   </div>
                   {latestDoc && getStatusBadge(latestDoc)}

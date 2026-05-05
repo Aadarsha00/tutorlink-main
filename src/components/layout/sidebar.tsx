@@ -90,6 +90,11 @@ export default function Sidebar({
           path: "/teacher/documents",
         },
         {
+          icon: Briefcase01Icon,
+          label: "Jobs",
+          path: "/jobs",
+        },
+        {
           icon: DollarCircleIcon,
           label: "Premium",
           path: "/teacher/premium",
@@ -186,6 +191,11 @@ export default function Sidebar({
               path: "/admin/gigs/disputed",
             },
           ],
+        },
+        {
+          icon: Briefcase01Icon,
+          label: "Job Management",
+          path: "/admin/jobs",
         },
 
         {
