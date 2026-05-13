@@ -50,6 +50,7 @@ type ApiError = {
 type TeacherProfileFormFields = {
   full_name: string;
   phone: string;
+  citizenship_number: string;
   education: string;
   experience_years: number;
   location: string;
@@ -146,6 +147,7 @@ export function TeacherProfileSetupPage() {
   const [formData, setFormData] = React.useState({
     full_name: "",
     phone: "",
+    citizenship_number: "",
     education: "",
     experience_years: 0,
     location: "",
@@ -172,6 +174,7 @@ export function TeacherProfileSetupPage() {
           setFormData({
             full_name: profile.full_name,
             phone: profile.phone,
+            citizenship_number: profile.citizenship_number || "",
             education: profile.education,
             experience_years: profile.experience_years,
             location: profile.location,
@@ -277,6 +280,8 @@ export function TeacherProfileSetupPage() {
     // Basic field validation
     if (!formData.full_name.trim()) errors.push("Full Name is required");
     if (!formData.phone.trim()) errors.push("Phone Number is required");
+    if (!formData.citizenship_number.trim())
+      errors.push("Citizenship No. / NID is required");
     if (!formData.education.trim())
       errors.push("Education Background is required");
     if (formData.experience_years < 0)
@@ -585,6 +590,22 @@ export function TeacherProfileSetupPage() {
                     placeholder="+977-9812345678"
                     value={formData.phone}
                     onChange={(e) => handleChange("phone", e.target.value)}
+                    required
+                  />
+                </Field>
+
+                <Field>
+                  <FieldLabel htmlFor="citizenship_number">
+                    Citizenship No. / NID *
+                  </FieldLabel>
+                  <Input
+                    id="citizenship_number"
+                    type="text"
+                    placeholder="Enter your citizenship number or NID"
+                    value={formData.citizenship_number}
+                    onChange={(e) =>
+                      handleChange("citizenship_number", e.target.value)
+                    }
                     required
                   />
                 </Field>

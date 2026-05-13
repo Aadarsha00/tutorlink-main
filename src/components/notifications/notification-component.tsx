@@ -26,6 +26,7 @@ import {
   BriefcaseIcon,
   DollarCircleIcon,
   AlertCircleIcon,
+  ChatIcon,
 } from "@hugeicons/core-free-icons";
 import api from "@/services/api";
 import type { Notification } from "@/services/api";
@@ -83,6 +84,7 @@ class WebSocketService {
   private listeners: Map<string, Set<(data: any) => void>> = new Map();
   private isIntentionallyClosed = false;
   private isConnecting = false;
+  private heartbeatId: number | null = null;
 
   connect(token: string) {
     if (this.ws?.readyState === WebSocket.OPEN || this.isConnecting) {
@@ -204,7 +206,9 @@ class WebSocketService {
   }
 
   startHeartbeat() {
-    setInterval(() => {
+    if (this.heartbeatId !== null) return;
+
+    this.heartbeatId = window.setInterval(() => {
       if (this.ws?.readyState === WebSocket.OPEN) {
         this.send("ping");
       }
@@ -231,6 +235,10 @@ const getNotificationIcon = (type: string) => {
     teacher_selected: CheckmarkCircle01Icon,
     selection_accepted: CheckmarkCircle01Icon,
     selection_rejected: AlertCircleIcon,
+    match_cancelled: AlertCircleIcon,
+    rate_change_requested: DollarCircleIcon,
+    rate_change_approved: CheckmarkCircle01Icon,
+    rate_change_rejected: AlertCircleIcon,
     payment_initiated: DollarCircleIcon,
     payment_released: DollarCircleIcon,
     payment_refunded: DollarCircleIcon,
@@ -240,6 +248,7 @@ const getNotificationIcon = (type: string) => {
     premium_activated: CheckmarkCircle01Icon,
     premium_expiring: AlertCircleIcon,
     premium_expired: AlertCircleIcon,
+    message_received: ChatIcon,
     system_announcement: Notification01Icon,
     test: Notification01Icon,
   };
@@ -249,6 +258,7 @@ const getNotificationIcon = (type: string) => {
 const getNotificationColor = (type: string) => {
   if (
     type.includes("reject") ||
+    type.includes("cancel") ||
     type.includes("expired") ||
     type.includes("dispute")
   ) {
@@ -291,11 +301,7 @@ export function NotificationDropdown() {
   React.useEffect(() => {
     loadNotifications();
     loadUnreadCount();
-    setupWebSocket();
-
-    return () => {
-      // Don't disconnect WebSocket - it's shared
-    };
+    return setupWebSocket();
   }, []);
 
   const setupWebSocket = () => {
@@ -307,8 +313,16 @@ export function NotificationDropdown() {
       const handleNewNotification = (data: any) => {
         console.log("🔔 New notification in dropdown:", data);
         emitNotificationEvent(data);
-        setNotifications((prev) => [data, ...prev].slice(0, 5));
-        setUnreadCount((prev) => prev + 1);
+        setNotifications((prev) => {
+          if (prev.some((notification) => notification.id === data.id)) {
+            return prev.map((notification) =>
+              notification.id === data.id ? data : notification
+            );
+          }
+
+          return [data, ...prev].slice(0, 5);
+        });
+        setUnreadCount((prev) => (data.is_read ? prev : prev + 1));
 
         if (Notification.permission === "granted") {
           new Notification(data.title, {
@@ -331,6 +345,8 @@ export function NotificationDropdown() {
         wsService.off("connection", handleConnection);
       };
     }
+
+    return undefined;
   };
 
   const loadNotifications = async () => {
@@ -541,11 +557,7 @@ export default function NotificationsPage() {
 
   React.useEffect(() => {
     loadData();
-    setupWebSocket();
-
-    return () => {
-      // Don't disconnect WebSocket - it's shared
-    };
+    return setupWebSocket();
   }, []);
 
   const setupWebSocket = () => {
@@ -556,16 +568,16 @@ export default function NotificationsPage() {
 
       const handleNewNotification = (data: any) => {
         console.log("🔔 New notification on page:", data);
-        emitNotificationEvent(data);
-        setNotifications((prev) => [data, ...prev]);
-        setUnreadCount((prev) => prev + 1);
+        setNotifications((prev) => {
+          if (prev.some((notification) => notification.id === data.id)) {
+            return prev.map((notification) =>
+              notification.id === data.id ? data : notification
+            );
+          }
 
-        if (Notification.permission === "granted") {
-          new Notification(data.title, {
-            body: data.message,
-            icon: "/logo.png",
-          });
-        }
+          return [data, ...prev];
+        });
+        setUnreadCount((prev) => (data.is_read ? prev : prev + 1));
       };
 
       const handleConnection = (data: any) => {
@@ -581,6 +593,8 @@ export default function NotificationsPage() {
         wsService.off("connection", handleConnection);
       };
     }
+
+    return undefined;
   };
 
   const loadData = async () => {

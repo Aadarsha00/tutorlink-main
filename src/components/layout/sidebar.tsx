@@ -17,6 +17,7 @@ import {
   FileValidationIcon,
   SearchListIcon,
   File02Icon,
+  ChatIcon,
 } from "@hugeicons/core-free-icons";
 import { Link, useLocation } from "react-router-dom";
 import { Avatar, AvatarImage } from "../ui/avatar";
@@ -90,6 +91,11 @@ export default function Sidebar({
           path: "/teacher/documents",
         },
         {
+          icon: ChatIcon,
+          label: "Messages",
+          path: "/messages",
+        },
+        {
           icon: Briefcase01Icon,
           label: "Jobs",
           path: "/jobs",
@@ -123,6 +129,11 @@ export default function Sidebar({
           icon: FileValidationIcon,
           label: "Documents",
           path: "/parent/documents",
+        },
+        {
+          icon: ChatIcon,
+          label: "Messages",
+          path: "/messages",
         },
         {
           icon: UserIcon,

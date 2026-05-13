@@ -244,6 +244,7 @@ export function PaymentRequiredBanner({
   teacherName,
   proposedRate,
   sessionsPerWeek,
+  pendingRateProposal = false,
   onPaymentSuccess,
 }: {
   gigId: number;
@@ -251,6 +252,7 @@ export function PaymentRequiredBanner({
   teacherName: string;
   proposedRate: number;
   sessionsPerWeek: number;
+  pendingRateProposal?: boolean;
   onPaymentSuccess: () => void;
 }) {
   const [showDialog, setShowDialog] = React.useState(false);
@@ -270,11 +272,23 @@ export function PaymentRequiredBanner({
             Complete payment to unlock teacher contact details and start your
             tutoring gig. The teacher has accepted your selection!
           </p>
+          <p className="mb-3 text-xs text-yellow-800">
+            If you agreed on a different hourly rate in chat, ask the teacher to
+            propose the new rate before you pay. Payment uses the rate only after
+            you approve the proposal.
+          </p>
+          {pendingRateProposal && (
+            <p className="mb-3 rounded-md border border-blue-200 bg-blue-50 px-3 py-2 text-xs font-medium text-blue-900">
+              A rate proposal is waiting for approval. Approve or reject it
+              before payment.
+            </p>
+          )}
           <Button
             onClick={() => setShowDialog(true)}
             variant="default"
             size="sm"
             className="bg-yellow-600 hover:bg-yellow-700"
+            disabled={pendingRateProposal}
           >
             <HugeiconsIcon icon={DollarCircleIcon} data-icon="inline-start" />
             Complete Payment

@@ -246,6 +246,7 @@ export interface TeacherProfile {
   user: User;
   full_name: string;
   phone: string;
+  citizenship_number: string;
   education: string;
   experience_years: number;
   subjects: Subject[];
@@ -273,6 +274,7 @@ export interface ParentProfile {
   user: User;
   full_name: string;
   phone: string;
+  citizenship_number: string;
   location: string;
   address: string;
   average_rating: number;
@@ -344,6 +346,7 @@ export interface Application {
         budget_min: number;
         budget_max: number;
         location: string;
+        status?: GigStatus;
       };
   teacher: number;
   teacher_profile?: TeacherProfile;
@@ -353,6 +356,12 @@ export interface Application {
   selected_at?: string;
   response_deadline?: string;
   responded_at?: string;
+  match_cancelled_at?: string;
+  match_cancelled_by?: number | null;
+  match_cancel_reason?: string;
+  rate_change_proposed_rate?: number | null;
+  rate_change_proposed_by?: number | null;
+  rate_change_proposed_at?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -479,6 +488,49 @@ export interface Notification {
   is_read: boolean;
   read_at?: string;
   created_at: string;
+}
+
+/* ======================================================
+   MESSAGING TYPES
+====================================================== */
+
+export interface MessagingUser {
+  id: number;
+  email: string;
+  first_name: string;
+  last_name: string;
+  full_name: string;
+  role: "teacher" | "parent" | "admin";
+  profile_picture?: string | null;
+}
+
+export interface ChatMessage {
+  id: number;
+  conversation: number;
+  sender: MessagingUser;
+  body: string;
+  read_at?: string | null;
+  created_at: string;
+}
+
+export interface ChatConversation {
+  id: number;
+  gig: {
+    id: number;
+    title: string;
+    subject: string;
+    grade: string;
+    status: string;
+  };
+  parent: MessagingUser;
+  teacher: MessagingUser;
+  other_user: MessagingUser | null;
+  is_active: boolean;
+  matched_application_id?: number | null;
+  last_message: ChatMessage | null;
+  unread_count: number;
+  created_at: string;
+  updated_at: string;
 }
 
 /* ======================================================
@@ -1451,6 +1503,20 @@ export const applicationAPI = {
     axiosInstance
       .post<Application>(`/applications/${id}/reject/`)
       .then((r) => r.data),
+  cancelMatch: (id: number, reason?: string) =>
+    axiosInstance
+      .post<Application>(`/applications/${id}/cancel-match/`, { reason })
+      .then((r) => r.data),
+  proposeRate: (id: number, proposedRate: number) =>
+    axiosInstance
+      .post<Application>(`/applications/${id}/propose-rate/`, {
+        proposed_rate: proposedRate,
+      })
+      .then((r) => r.data),
+  respondRate: (id: number, decision: "approve" | "reject") =>
+    axiosInstance
+      .post<Application>(`/applications/${id}/respond-rate/`, { decision })
+      .then((r) => r.data),
 };
 
 /* ======================================================
@@ -1484,9 +1550,13 @@ export const jobApplicationAPI = {
     axiosInstance
       .get<JobApplication>(`/job-applications/${id}/`)
       .then((r) => r.data),
-  create: (data: { job: number; cover_letter?: string }) =>
+  create: (data: { job: number; cover_letter?: string } | FormData) =>
     axiosInstance
-      .post<JobApplication>("/job-applications/", data)
+      .post<JobApplication>(
+        "/job-applications/",
+        data,
+        data instanceof FormData ? multipartConfig : undefined
+      )
       .then((r) => r.data),
   patch: (
     id: number,
@@ -1568,6 +1638,47 @@ export const notificationAPI = {
   markAllRead: () =>
     axiosInstance
       .post<{ marked_count: number }>("/notifications/read-all/")
+      .then((r) => r.data),
+};
+
+/* ======================================================
+   MESSAGING API
+====================================================== */
+
+export const messagingAPI = {
+  conversations: () =>
+    axiosInstance
+      .get<ChatConversation[] | { results: ChatConversation[] }>(
+        "/messaging/conversations/"
+      )
+      .then((r) => (Array.isArray(r.data) ? r.data : r.data.results || [])),
+  conversationForGig: async (gigId: number) => {
+    const conversations = await messagingAPI.conversations();
+    return conversations.find((conversation) => conversation.gig.id === gigId) || null;
+  },
+  conversation: (id: number) =>
+    axiosInstance
+      .get<ChatConversation>(`/messaging/conversations/${id}/`)
+      .then((r) => r.data),
+  messages: (conversationId: number) =>
+    axiosInstance
+      .get<ChatMessage[]>(`/messaging/conversations/${conversationId}/messages/`)
+      .then((r) => r.data),
+  send: (conversationId: number, body: string) =>
+    axiosInstance
+      .post<ChatMessage>(`/messaging/conversations/${conversationId}/messages/`, {
+        body,
+      })
+      .then((r) => r.data),
+  markRead: (conversationId: number) =>
+    axiosInstance
+      .post<{ marked_count: number; message_ids?: number[]; read_at?: string | null }>(
+        `/messaging/conversations/${conversationId}/read/`
+      )
+      .then((r) => r.data),
+  unreadCount: () =>
+    axiosInstance
+      .get<{ unread_count: number }>("/messaging/unread-count/")
       .then((r) => r.data),
 };
 
@@ -1772,6 +1883,7 @@ export default {
   jobApplications: jobApplicationAPI,
   payments: paymentAPI,
   notifications: notificationAPI,
+  messaging: messagingAPI,
   ratings: ratingAPI,
   stats: statsAPI,
   documents: documentAPI,

@@ -24,6 +24,7 @@ import { useNavigate } from "react-router-dom";
 type ParentProfileFormFields = {
   full_name: string;
   phone: string;
+  citizenship_number: string;
   location: string;
   address: string;
 };
@@ -87,6 +88,7 @@ export default function ParentProfileSetup() {
   const [formData, setFormData] = React.useState({
     full_name: "",
     phone: "",
+    citizenship_number: "",
     location: "",
     address: "",
   });
@@ -107,6 +109,7 @@ export default function ParentProfileSetup() {
         setFormData({
           full_name: profile.full_name || "",
           phone: profile.phone || "",
+          citizenship_number: profile.citizenship_number || "",
           location: profile.location || "",
           address: profile.address || "",
         });
@@ -210,6 +213,11 @@ export default function ParentProfileSetup() {
 
     if (!formData.phone.trim()) {
       setError("Phone number is required");
+      return;
+    }
+
+    if (!formData.citizenship_number.trim()) {
+      setError("Citizenship No. / NID is required");
       return;
     }
 
@@ -319,6 +327,22 @@ export default function ParentProfileSetup() {
                   value={formData.phone}
                   onChange={(e) => handleChange("phone", e.target.value)}
                   placeholder="+977-9812345678"
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="citizenship_number">
+                  Citizenship No. / NID *
+                </Label>
+                <Input
+                  id="citizenship_number"
+                  type="text"
+                  value={formData.citizenship_number}
+                  onChange={(e) =>
+                    handleChange("citizenship_number", e.target.value)
+                  }
+                  placeholder="Enter your citizenship number or NID"
                   required
                 />
               </div>

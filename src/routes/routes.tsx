@@ -27,6 +27,7 @@ import ParentDocumentManagement from "@/pages/dashboard/parent/parent-document-m
 import { TeacherDocumentManagement } from "@/pages/dashboard/teacher/teacher-document-management";
 import TeacherMyApplications from "@/pages/dashboard/teacher/teacher-my-applications";
 import ProfileSettingsPage from "@/pages/dashboard/profile";
+import MessagesPage from "@/pages/dashboard/messages";
 import AdminGigs from "@/pages/dashboard/admin/admin-gigs";
 import AdminAllUsersPage from "@/pages/dashboard/admin/admin-all-users";
 import AdminTeachersPage from "@/pages/dashboard/admin/admin-teachers";
@@ -196,6 +197,18 @@ function App() {
             <RoleProtectedRoute allowedRoles={["parent"]}>
               <DashboardLayout>
                 <ParentDashboard />
+              </DashboardLayout>
+            </RoleProtectedRoute>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/messages"
+        element={
+          <ProtectedRoute>
+            <RoleProtectedRoute allowedRoles={["parent", "teacher"]}>
+              <DashboardLayout>
+                <MessagesPage />
               </DashboardLayout>
             </RoleProtectedRoute>
           </ProtectedRoute>

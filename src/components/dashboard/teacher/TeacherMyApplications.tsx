@@ -35,10 +35,12 @@ import {
   Search01Icon,
   Filter,
   ArrowDown01Icon,
+  MessageIcon,
 } from "@hugeicons/core-free-icons";
 import api from "@/services/api";
 import type { Application } from "@/services/api";
 import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
 
 interface ParentProfile {
   id: number;
@@ -367,6 +369,11 @@ function getStatusBadge(status: string) {
       label: "Withdrawn",
       color: "bg-gray-100 text-gray-800",
     },
+    cancelled: {
+      variant: "destructive" as const,
+      label: "Cancelled",
+      color: "bg-red-100 text-red-800",
+    },
   };
 
   const config =
@@ -382,35 +389,71 @@ function getStatusBadge(status: string) {
 }
 
 export default function TeacherApplicationsPage() {
+  const navigate = useNavigate();
   const [applications, setApplications] = React.useState<Application[]>([]);
   const [filteredApplications, setFilteredApplications] = React.useState<
     Application[]
   >([]);
   const [loading, setLoading] = React.useState(true);
+  const [actionLoading, setActionLoading] = React.useState<{
+    id: number;
+    action: "withdraw" | "accept" | "reject" | "cancel" | "rate";
+  } | null>(null);
   const [searchQuery, setSearchQuery] = React.useState("");
   const [statusFilter, setStatusFilter] = React.useState<string>("all");
   const [sortBy, setSortBy] = React.useState<string>("date-desc");
 
-  React.useEffect(() => {
-    loadApplications();
-  }, []);
-
-  React.useEffect(() => {
-    filterAndSortApplications();
-  }, [applications, searchQuery, statusFilter, sortBy]);
-
-  const loadApplications = async () => {
+  const loadApplications = React.useCallback(async (showSpinner = true) => {
     try {
-      setLoading(true);
+      if (showSpinner) setLoading(true);
       const data = await api.applications.list();
       const appArray = Array.isArray(data) ? data : [];
       setApplications(appArray);
     } catch (error) {
       console.error("Failed to load applications", error);
     } finally {
-      setLoading(false);
+      if (showSpinner) setLoading(false);
     }
-  };
+  }, []);
+
+  React.useEffect(() => {
+    loadApplications();
+  }, [loadApplications]);
+
+  React.useEffect(() => {
+    const refreshOnNotification = (event: Event) => {
+      const notification = (event as CustomEvent<any>).detail;
+      const applicationEvents = new Set([
+        "teacher_selected",
+        "selection_accepted",
+        "selection_rejected",
+        "match_cancelled",
+      ]);
+
+      if (applicationEvents.has(notification?.notification_type)) {
+        loadApplications(false);
+      }
+    };
+
+    const refreshOnFocus = () => loadApplications(false);
+
+    window.addEventListener("tutorlink:notification", refreshOnNotification);
+    window.addEventListener("focus", refreshOnFocus);
+
+    return () => {
+      window.removeEventListener("tutorlink:notification", refreshOnNotification);
+      window.removeEventListener("focus", refreshOnFocus);
+    };
+  }, [loadApplications]);
+
+  React.useEffect(() => {
+    filterAndSortApplications();
+  }, [applications, searchQuery, statusFilter, sortBy]);
+
+  const isActionLoading = (
+    id: number,
+    action?: "withdraw" | "accept" | "reject" | "cancel" | "rate"
+  ) => actionLoading?.id === id && (!action || actionLoading.action === action);
 
   const filterAndSortApplications = () => {
     let filtered = [...applications];
@@ -463,21 +506,29 @@ export default function TeacherApplicationsPage() {
     if (!confirm("Are you sure you want to withdraw this application?")) return;
 
     try {
+      setActionLoading({ id, action: "withdraw" });
       await api.applications.withdraw(id);
-      await loadApplications();
+      toast.success("Application withdrawn.");
+      await loadApplications(false);
     } catch (error) {
       console.error("Failed to withdraw application", error);
       toast.error("Failed to withdraw application");
+    } finally {
+      setActionLoading(null);
     }
   };
 
   const handleAccept = async (id: number) => {
     try {
+      setActionLoading({ id, action: "accept" });
       await api.applications.accept(id);
-      await loadApplications();
+      toast.success("Selection accepted. Messages are now available.");
+      await loadApplications(false);
     } catch (error) {
       console.error("Failed to accept application", error);
       toast.error("Failed to accept application");
+    } finally {
+      setActionLoading(null);
     }
   };
 
@@ -485,11 +536,75 @@ export default function TeacherApplicationsPage() {
     if (!confirm("Are you sure you want to reject this selection?")) return;
 
     try {
+      setActionLoading({ id, action: "reject" });
       await api.applications.reject(id);
-      await loadApplications();
+      toast.success("Selection rejected.");
+      await loadApplications(false);
     } catch (error) {
       console.error("Failed to reject application", error);
       toast.error("Failed to reject application");
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleOpenConversation = async (application: Application) => {
+    const gigId =
+      typeof application.gig === "number" ? application.gig : application.gig.id;
+
+    try {
+      const conversation = await api.messaging.conversationForGig(gigId);
+      if (!conversation) {
+        toast.error("Messages unlock after both sides accept the gig.");
+        return;
+      }
+
+      navigate(`/messages?conversation=${conversation.id}`);
+    } catch (err: any) {
+      toast.error(err.response?.data?.detail || "Failed to open messages");
+    }
+  };
+
+  const handleCancelMatch = async (application: Application) => {
+    const reason = window.prompt(
+      "Optional reason for cancelling this match, for example: schedule issue"
+    );
+
+    if (reason === null) return;
+
+    try {
+      setActionLoading({ id: application.id, action: "cancel" });
+      await api.applications.cancelMatch(application.id, reason);
+      toast.success("Match cancelled.");
+      await loadApplications(false);
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || "Failed to cancel match");
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleUpdateRate = async (application: Application) => {
+    const currentRate = Number(application.proposed_rate);
+    const input = window.prompt("Enter the proposed per-session rate", String(currentRate));
+
+    if (input === null) return;
+
+    const nextRate = Number(input);
+    if (!Number.isFinite(nextRate) || nextRate <= 0) {
+      toast.error("Enter a valid hourly rate");
+      return;
+    }
+
+    try {
+      setActionLoading({ id: application.id, action: "rate" });
+      await api.applications.proposeRate(application.id, nextRate);
+      toast.success("Rate proposal sent for approval.");
+      await loadApplications(false);
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || "Failed to propose rate");
+    } finally {
+      setActionLoading(null);
     }
   };
 
@@ -609,6 +724,7 @@ export default function TeacherApplicationsPage() {
                   <SelectItem value="accepted">Accepted</SelectItem>
                   <SelectItem value="rejected">Rejected</SelectItem>
                   <SelectItem value="withdrawn">Withdrawn</SelectItem>
+                  <SelectItem value="cancelled">Cancelled</SelectItem>
                 </SelectContent>
               </Select>
 
@@ -662,6 +778,8 @@ export default function TeacherApplicationsPage() {
                 typeof application.gig === "object" ? application.gig : null;
               const isSelected = application.status === "selected";
               const isPending = application.status === "pending";
+              const isAccepted = application.status === "accepted";
+              const canCancelMatch = isAccepted && gig?.status === "payment_pending";
 
               return (
                 <Card
@@ -727,13 +845,20 @@ export default function TeacherApplicationsPage() {
                         <div className="bg-muted/50 p-3 rounded-lg mb-3 inline-block">
                           <p className="text-sm">
                             <span className="text-muted-foreground">
-                              Your proposed rate:
+                              Current agreed rate:
                             </span>{" "}
                             <strong className="text-foreground">
-                              Rs. {application.proposed_rate}
+                              Rs. {application.proposed_rate}/session
                             </strong>
                           </p>
                         </div>
+
+                        {application.rate_change_proposed_rate && (
+                          <div className="mb-3 rounded-lg border border-blue-200 bg-blue-50 p-3 text-sm text-blue-900">
+                            Pending rate proposal: Rs.{" "}
+                            {application.rate_change_proposed_rate}/session
+                          </div>
+                        )}
 
                         <div className="flex gap-2">
                           <GigDetailsDialog application={application} />
@@ -742,9 +867,12 @@ export default function TeacherApplicationsPage() {
                               variant="outline"
                               size="sm"
                               onClick={() => handleWithdraw(application.id)}
+                              disabled={isActionLoading(application.id)}
                               className="text-red-600 hover:text-red-700"
                             >
-                              Withdraw
+                              {isActionLoading(application.id, "withdraw")
+                                ? "Withdrawing..."
+                                : "Withdraw"}
                             </Button>
                           )}
                           {isSelected && (
@@ -752,26 +880,76 @@ export default function TeacherApplicationsPage() {
                               <Button
                                 size="sm"
                                 onClick={() => handleAccept(application.id)}
+                                disabled={isActionLoading(application.id)}
                                 className="bg-green-600 hover:bg-green-700"
                               >
                                 <HugeiconsIcon
                                   icon={CheckmarkCircle01Icon}
                                   data-icon="inline-start"
                                 />
-                                Accept
+                                {isActionLoading(application.id, "accept")
+                                  ? "Accepting..."
+                                  : "Accept"}
                               </Button>
                               <Button
                                 size="sm"
                                 variant="outline"
                                 onClick={() => handleReject(application.id)}
+                                disabled={isActionLoading(application.id)}
                                 className="border-red-300 text-red-600 hover:bg-red-50"
                               >
                                 <HugeiconsIcon
                                   icon={CancelCircleIcon}
                                   data-icon="inline-start"
                                 />
-                                Reject
+                                {isActionLoading(application.id, "reject")
+                                  ? "Rejecting..."
+                                  : "Reject"}
                               </Button>
+                            </>
+                          )}
+                          {isAccepted && (
+                            <>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleOpenConversation(application)}
+                              >
+                                <HugeiconsIcon
+                                  icon={MessageIcon}
+                                  data-icon="inline-start"
+                                />
+                                Message Parent
+                              </Button>
+                              {canCancelMatch && (
+                                <>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => handleUpdateRate(application)}
+                                    disabled={isActionLoading(application.id)}
+                                  >
+                                    {isActionLoading(application.id, "rate")
+                                      ? "Sending..."
+                                      : "Propose Rate"}
+                                  </Button>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => handleCancelMatch(application)}
+                                    disabled={isActionLoading(application.id)}
+                                    className="border-red-300 text-red-600 hover:bg-red-50"
+                                  >
+                                    <HugeiconsIcon
+                                      icon={CancelCircleIcon}
+                                      data-icon="inline-start"
+                                    />
+                                    {isActionLoading(application.id, "cancel")
+                                      ? "Cancelling..."
+                                      : "Cancel Match"}
+                                  </Button>
+                                </>
+                              )}
                             </>
                           )}
                         </div>

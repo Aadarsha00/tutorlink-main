@@ -1,6 +1,6 @@
 // src/pages/ParentGigApplicationsPage.tsx - With Payment Integration
 import * as React from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -21,6 +21,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Textarea } from "@/components/ui/textarea";
 import { HugeiconsIcon } from "@hugeicons/react";
 import {
   ArrowLeft01Icon,
@@ -37,6 +38,7 @@ import {
   Shield,
   Phone,
   Mail01Icon,
+  MessageIcon,
 } from "@hugeicons/core-free-icons";
 import api from "@/services/api";
 import type { Application, Gig } from "@/services/api";
@@ -53,7 +55,11 @@ export default function ParentGigApplicationsPage() {
   const [error, setError] = React.useState<string | null>(null);
   const [selectedApplication, setSelectedApplication] =
     React.useState<Application | null>(null);
+  const [cancelApplication, setCancelApplication] =
+    React.useState<Application | null>(null);
   const [showSelectDialog, setShowSelectDialog] = React.useState(false);
+  const [showCancelDialog, setShowCancelDialog] = React.useState(false);
+  const [cancelReason, setCancelReason] = React.useState("");
   const [actionLoading, setActionLoading] = React.useState(false);
   const [filter, setFilter] = React.useState<"all" | "pending" | "selected">(
     "all"
@@ -64,6 +70,30 @@ export default function ParentGigApplicationsPage() {
     if (gigId) {
       loadData();
     }
+  }, [gigId]);
+
+  React.useEffect(() => {
+    const refreshOnNotification = (event: Event) => {
+      const notification = (event as CustomEvent<any>).detail;
+      if (
+        [
+          "rate_change_requested",
+          "rate_change_approved",
+          "rate_change_rejected",
+          "match_cancelled",
+          "selection_accepted",
+        ].includes(
+          notification?.notification_type
+        )
+      ) {
+        loadData();
+      }
+    };
+
+    window.addEventListener("tutorlink:notification", refreshOnNotification);
+    return () => {
+      window.removeEventListener("tutorlink:notification", refreshOnNotification);
+    };
   }, [gigId]);
 
   const loadData = async () => {
@@ -106,6 +136,12 @@ export default function ParentGigApplicationsPage() {
     setShowSelectDialog(true);
   };
 
+  const handleCancelMatch = (application: Application) => {
+    setCancelApplication(application);
+    setCancelReason("");
+    setShowCancelDialog(true);
+  };
+
   const confirmSelectTeacher = async () => {
     if (!selectedApplication) return;
 
@@ -121,6 +157,43 @@ export default function ParentGigApplicationsPage() {
     } catch (err: any) {
       console.error("Failed to select teacher:", err);
       toast.error(err.response?.data?.detail || "Failed to select teacher");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const confirmCancelMatch = async () => {
+    if (!cancelApplication) return;
+
+    try {
+      setActionLoading(true);
+      await api.applications.cancelMatch(cancelApplication.id, cancelReason);
+      toast.success("Match cancelled. Your gig is open again.");
+      await loadData();
+      setShowCancelDialog(false);
+      setCancelApplication(null);
+      setCancelReason("");
+    } catch (err: any) {
+      console.error("Failed to cancel match:", err);
+      toast.error(err.response?.data?.error || "Failed to cancel match");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleRespondRate = async (
+    application: Application,
+    decision: "approve" | "reject"
+  ) => {
+    try {
+      setActionLoading(true);
+      await api.applications.respondRate(application.id, decision);
+      toast.success(
+        decision === "approve" ? "Rate change approved." : "Rate change rejected."
+      );
+      await loadData();
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || "Failed to respond to rate change");
     } finally {
       setActionLoading(false);
     }
@@ -198,6 +271,9 @@ export default function ParentGigApplicationsPage() {
                 teacherName={acceptedApplication.teacher_profile.full_name}
                 proposedRate={acceptedApplication.proposed_rate}
                 sessionsPerWeek={gig.sessions_per_week}
+                pendingRateProposal={Boolean(
+                  acceptedApplication.rate_change_proposed_rate
+                )}
                 onPaymentSuccess={() => {
                   loadData();
                 }}
@@ -211,7 +287,7 @@ export default function ParentGigApplicationsPage() {
             <HugeiconsIcon icon={Shield} className="h-5 w-5 text-blue-600" />
             <div className="ml-4">
               <h4 className="font-semibold text-blue-900 mb-1">
-                Teacher Contact Details Protected
+                Direct Contact Details Protected
               </h4>
               <div className="text-sm text-blue-800 space-y-1">
                 <p>
@@ -221,8 +297,12 @@ export default function ParentGigApplicationsPage() {
                   <li>Phone number</li>
                   <li>Email address</li>
                   <li>Full address</li>
-                  <li>Direct communication access</li>
                 </ul>
+                <p className="mt-2">
+                  In-site messages are available after the teacher accepts your
+                  selection, but sharing phone numbers or addresses in chat is
+                  blocked.
+                </p>
               </div>
             </div>
           </Alert>
@@ -327,6 +407,10 @@ export default function ParentGigApplicationsPage() {
                       key={application.id}
                       application={application}
                       onSelect={() => handleSelectTeacher(application)}
+                      onCancelMatch={() => handleCancelMatch(application)}
+                      onRespondRate={(decision) =>
+                        handleRespondRate(application, decision)
+                      }
                       disabled={
                         gig.status !== "open" ||
                         application.status !== "pending"
@@ -391,6 +475,43 @@ export default function ParentGigApplicationsPage() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        <Dialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Cancel this match?</DialogTitle>
+              <DialogDescription>
+                This will close the chat, reopen your gig, and let you select
+                another teacher. Use this only before payment is completed.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="py-2">
+              <Textarea
+                value={cancelReason}
+                onChange={(event) => setCancelReason(event.target.value)}
+                maxLength={300}
+                placeholder="Optional reason, for example: teacher not responding"
+                className="min-h-24 resize-none"
+              />
+            </div>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => setShowCancelDialog(false)}
+                disabled={actionLoading}
+              >
+                Keep Match
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={confirmCancelMatch}
+                disabled={actionLoading}
+              >
+                {actionLoading ? "Cancelling..." : "Cancel Match"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );
@@ -400,23 +521,45 @@ export default function ParentGigApplicationsPage() {
 function ApplicationCard({
   application,
   onSelect,
+  onCancelMatch,
+  onRespondRate,
   disabled,
   gigStatus,
   paymentCompleted,
 }: {
   application: Application;
   onSelect: () => void;
+  onCancelMatch: () => void;
+  onRespondRate: (decision: "approve" | "reject") => void;
   disabled: boolean;
   gigStatus: string;
   paymentCompleted: boolean;
 }) {
   const navigate = useNavigate();
+  const location = useLocation();
   const profile = application.teacher_profile;
   const status = getApplicationStatus(application.status);
 
   if (!profile) {
     return null;
   }
+
+  const applicationGigId =
+    typeof application.gig === "number" ? application.gig : application.gig.id;
+
+  const openConversation = async () => {
+    try {
+      const conversation = await api.messaging.conversationForGig(applicationGigId);
+      if (!conversation) {
+        toast.error("Messages unlock after the teacher accepts your selection.");
+        return;
+      }
+
+      navigate(`/messages?conversation=${conversation.id}`);
+    } catch (err: any) {
+      toast.error(err.response?.data?.detail || "Failed to open messages");
+    }
+  };
 
   // Check if contacts should be shown
   const showContacts =
@@ -582,12 +725,46 @@ function ApplicationCard({
               </div>
             )}
 
+            {application.rate_change_proposed_rate && (
+              <div className="rounded-lg border border-blue-200 bg-blue-50 p-3">
+                <p className="text-sm font-medium text-blue-950">
+                  Rate change proposed
+                </p>
+                <p className="mt-1 text-sm text-blue-800">
+                  New rate: Rs. {application.rate_change_proposed_rate}/session.
+                  Both sides must accept before this affects payment.
+                </p>
+                {gigStatus === "payment_pending" &&
+                  application.rate_change_proposed_by === profile.user.id && (
+                    <div className="mt-3 flex gap-2">
+                      <Button size="sm" onClick={() => onRespondRate("approve")}>
+                        Approve Rate
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => onRespondRate("reject")}
+                      >
+                        Reject
+                      </Button>
+                    </div>
+                  )}
+              </div>
+            )}
+
             {/* Actions */}
             <div className="flex gap-2">
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => navigate(`/teachers/${profile.user.id}`)}
+                onClick={() =>
+                  navigate(`/tutor/${profile.id}`, {
+                    state: {
+                      returnTo: `${location.pathname}${location.search}`,
+                      returnLabel: "Back to applications",
+                    },
+                  })
+                }
               >
                 <HugeiconsIcon icon={UserIcon} data-icon="inline-start" />
                 View Profile
@@ -603,28 +780,49 @@ function ApplicationCard({
               )}
               {application.status === "selected" &&
                 !application.responded_at && (
-                  <Badge
-                    variant="secondary"
-                    className="flex items-center gap-1"
-                  >
-                    <HugeiconsIcon icon={TimeIcon} size={14} />
-                    Waiting for response
-                    {application.response_deadline && (
-                      <span className="text-xs">
-                        (Expires:{" "}
-                        {new Date(
-                          application.response_deadline
-                        ).toLocaleDateString()}
-                        )
-                      </span>
-                    )}
-                  </Badge>
+                  <>
+                    <Badge
+                      variant="secondary"
+                      className="flex items-center gap-1"
+                    >
+                      <HugeiconsIcon icon={TimeIcon} size={14} />
+                      Waiting for response
+                      {application.response_deadline && (
+                        <span className="text-xs">
+                          (Expires:{" "}
+                          {new Date(
+                            application.response_deadline
+                          ).toLocaleDateString()}
+                          )
+                        </span>
+                      )}
+                    </Badge>
+                    <span className="rounded-md border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs font-medium text-blue-800">
+                      Messages open after the teacher accepts.
+                    </span>
+                  </>
                 )}
               {application.status === "accepted" && (
-                <Badge variant="default" className="flex items-center gap-1">
-                  <HugeiconsIcon icon={CheckmarkCircle01Icon} size={14} />
-                  Teacher Accepted
-                </Badge>
+                <>
+                  <Button variant="outline" size="sm" onClick={openConversation}>
+                    <HugeiconsIcon icon={MessageIcon} data-icon="inline-start" />
+                    Message
+                  </Button>
+                  {gigStatus === "payment_pending" && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="text-red-600 hover:bg-red-50 hover:text-red-700"
+                      onClick={onCancelMatch}
+                    >
+                      Cancel Match
+                    </Button>
+                  )}
+                  <Badge variant="default" className="flex items-center gap-1">
+                    <HugeiconsIcon icon={CheckmarkCircle01Icon} size={14} />
+                    Teacher Accepted
+                  </Badge>
+                </>
               )}
               {application.status === "rejected" && (
                 <Badge
@@ -656,6 +854,7 @@ function getApplicationStatus(status: string) {
     accepted: { label: "Accepted", variant: "default" },
     rejected: { label: "Rejected", variant: "destructive" },
     withdrawn: { label: "Withdrawn", variant: "outline" },
+    cancelled: { label: "Cancelled", variant: "destructive" },
   };
   return statusMap[status] || { label: status, variant: "secondary" };
 }

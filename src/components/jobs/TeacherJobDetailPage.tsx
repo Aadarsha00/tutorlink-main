@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { HugeiconsIcon } from "@hugeicons/react";
@@ -64,6 +65,7 @@ export default function TeacherJobDetailPage({
     null
   );
   const [coverLetter, setCoverLetter] = React.useState("");
+  const [cvFile, setCvFile] = React.useState<File | null>(null);
   const [loading, setLoading] = React.useState(true);
   const [submitting, setSubmitting] = React.useState(false);
   const [error, setError] = React.useState("");
@@ -104,11 +106,25 @@ export default function TeacherJobDetailPage({
     try {
       setSubmitting(true);
       setError("");
-      await api.jobApplications.create({
-        job: job.id,
-        cover_letter: coverLetter,
-      });
-      toast.success("Job application submitted with your verified CV.");
+      const applicationData = cvFile
+        ? (() => {
+            const formData = new FormData();
+            formData.append("job", String(job.id));
+            formData.append("cover_letter", coverLetter);
+            formData.append("cv_file", cvFile);
+            return formData;
+          })()
+        : {
+            job: job.id,
+            cover_letter: coverLetter,
+          };
+
+      await api.jobApplications.create(applicationData);
+      toast.success(
+        cvFile
+          ? "Job application submitted with your uploaded CV."
+          : "Job application submitted with your profile CV."
+      );
       navigate(`/jobs/${job.id}`);
       await loadData();
     } catch (err: any) {
@@ -267,6 +283,21 @@ export default function TeacherJobDetailPage({
                       value={coverLetter}
                       onChange={(event) => setCoverLetter(event.target.value)}
                     />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="cv-file">CV</Label>
+                    <Input
+                      id="cv-file"
+                      type="file"
+                      accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+                      onChange={(event) => {
+                        setCvFile(event.target.files?.[0] || null);
+                        if (error) setError("");
+                      }}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Leave empty to use the CV from your teacher profile.
+                    </p>
                   </div>
                   <div className="flex justify-end gap-2">
                     <Button variant="outline" onClick={() => navigate(`/jobs/${job.id}`)}>

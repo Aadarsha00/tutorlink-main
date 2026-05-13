@@ -42,7 +42,7 @@ import api from "@/services/api";
 import { useAuth } from "@/hooks/useAuth";
 import type { Gig, User, Application, Rating } from "@/services/api";
 import { toast } from "sonner";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 
 interface RatingDialogProps {
   gig: Gig;
@@ -368,11 +368,47 @@ function ApplyDialog({ gig, onSuccess }: { gig: Gig; onSuccess: () => void }) {
 function ApplicationCard({
   application,
   isOwner,
+  gigStatus,
 }: {
   application: Application;
   isOwner: boolean;
+  gigStatus: string;
 }) {
+  const navigate = useNavigate();
+  const location = useLocation();
   const teacherProfile = application.teacher_profile;
+  const applicationGigId =
+    typeof application.gig === "number" ? application.gig : application.gig.id;
+
+  const openConversation = async () => {
+    try {
+      const conversation = await api.messaging.conversationForGig(applicationGigId);
+      if (!conversation) {
+        toast.error("Messages unlock after the teacher accepts your selection.");
+        return;
+      }
+
+      navigate(`/messages?conversation=${conversation.id}`);
+    } catch (err: any) {
+      toast.error(err.response?.data?.detail || "Failed to open messages");
+    }
+  };
+
+  const cancelMatch = async () => {
+    const reason = window.prompt(
+      "Optional reason for cancelling this match, for example: teacher not responding"
+    );
+
+    if (reason === null) return;
+
+    try {
+      await api.applications.cancelMatch(application.id, reason);
+      toast.success("Match cancelled. Your gig is open again.");
+      window.location.reload();
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || "Failed to cancel match");
+    }
+  };
 
   return (
     <Card>
@@ -426,12 +462,30 @@ function ApplicationCard({
         </div>
         {isOwner && application.status === "pending" && (
           <div className="flex gap-2 pt-4 border-t">
-            <Button variant="outline" className="flex-1">
+            <Button
+              variant="outline"
+              className="flex-1"
+              onClick={() =>
+                teacherProfile &&
+                navigate(`/tutor/${teacherProfile.id}`, {
+                  state: {
+                    returnTo: `${location.pathname}${location.search}`,
+                    returnLabel: "Back to gig",
+                  },
+                })
+              }
+              disabled={!teacherProfile}
+            >
               View Profile
             </Button>
-            <Button variant="outline" className="flex-1">
+            <Button
+              variant="outline"
+              className="flex-1"
+              disabled
+              title="Messages unlock after the teacher accepts your selection."
+            >
               <HugeiconsIcon icon={MessageIcon} data-icon="inline-start" />
-              Message
+              Opens after accept
             </Button>
             <Button
               className="flex-1"
@@ -446,6 +500,39 @@ function ApplicationCard({
             >
               Select Applicant
             </Button>
+          </div>
+        )}
+        {isOwner && application.status === "accepted" && (
+          <div className="flex gap-2 pt-4 border-t">
+            <Button
+              variant="outline"
+              className="flex-1"
+              onClick={() =>
+                teacherProfile &&
+                navigate(`/tutor/${teacherProfile.id}`, {
+                  state: {
+                    returnTo: `${location.pathname}${location.search}`,
+                    returnLabel: "Back to gig",
+                  },
+                })
+              }
+              disabled={!teacherProfile}
+            >
+              View Profile
+            </Button>
+            <Button variant="outline" className="flex-1" onClick={openConversation}>
+              <HugeiconsIcon icon={MessageIcon} data-icon="inline-start" />
+              Message
+            </Button>
+            {gigStatus === "payment_pending" && (
+              <Button
+                variant="outline"
+                className="flex-1 border-red-300 text-red-600 hover:bg-red-50"
+                onClick={cancelMatch}
+              >
+                Cancel Match
+              </Button>
+            )}
           </div>
         )}
       </CardContent>
@@ -595,6 +682,22 @@ export default function GigDetailPage() {
     }
   };
 
+  const handleOpenGigConversation = async () => {
+    if (!gig) return;
+
+    try {
+      const conversation = await api.messaging.conversationForGig(gig.id);
+      if (!conversation) {
+        toast.error("Messages unlock after both sides accept the gig.");
+        return;
+      }
+
+      navigate(`/messages?conversation=${conversation.id}`);
+    } catch (err: any) {
+      toast.error(err.response?.data?.detail || "Failed to open messages");
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
@@ -624,6 +727,10 @@ export default function GigDetailPage() {
   const isTeacher = user?.role === "teacher";
   const canApply = isTeacher && gig.status === "open" && !hasApplied;
   const isRateable = ["active", "completed", "disputed"].includes(gig.status);
+  const canMessageParent =
+    isTeacher &&
+    gig.hired_teacher === user?.id &&
+    ["payment_pending", "active", "completed", "disputed"].includes(gig.status);
 
   return (
     <div className="min-h-screen bg-linear-to-br from-neutral-50 to-neutral-100">
@@ -818,6 +925,7 @@ export default function GigDetailPage() {
                       key={application.id}
                       application={application}
                       isOwner={isOwner}
+                      gigStatus={gig.status}
                     />
                   ))}
                 </CardContent>
@@ -937,7 +1045,17 @@ export default function GigDetailPage() {
                   </div>
 
                   {user && (
-                    <Button variant="outline" className="w-full">
+                    <Button
+                      variant="outline"
+                      className="w-full"
+                      onClick={handleOpenGigConversation}
+                      disabled={!canMessageParent}
+                      title={
+                        canMessageParent
+                          ? undefined
+                          : "Messages unlock after both sides accept the gig."
+                      }
+                    >
                       <HugeiconsIcon
                         icon={MessageIcon}
                         data-icon="inline-start"

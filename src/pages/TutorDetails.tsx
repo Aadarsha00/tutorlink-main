@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useLocation, useParams } from "react-router-dom";
 import {
   ArrowLeft,
   Award,
@@ -43,20 +43,25 @@ function gradeLabel(name: string) {
   return trimmed;
 }
 
-function ctaPath(userRole?: string) {
-  if (!userRole) return "/register?role=parent";
-  if (userRole === "parent") return "/parent/create-gig";
-  return "/dashboard";
+function ctaForRole(userRole?: string) {
+  if (userRole === "parent") return null;
+  if (!userRole) return { path: "/register?role=parent", label: "Register to Connect" };
+  return { path: "/dashboard", label: "Go to Dashboard" };
 }
 
-function ctaLabel(userRole?: string) {
-  if (!userRole) return "Register to Connect";
-  if (userRole === "parent") return "Post a Gig";
-  return "Go to Dashboard";
+type TutorDetailsLocationState = {
+  returnTo?: string;
+  returnLabel?: string;
+};
+
+function safeReturnPath(path?: string) {
+  if (!path || !path.startsWith("/") || path.startsWith("//")) return "/tutor";
+  return path;
 }
 
 export function TutorDetailsPage() {
   const { id } = useParams();
+  const location = useLocation();
   const { user } = useAuth();
   const [tutor, setTutor] = useState<PublicTutorDetails | null>(null);
   const [loading, setLoading] = useState(true);
@@ -93,6 +98,10 @@ export function TutorDetailsPage() {
   }, [id]);
 
   const rating = Number(tutor?.average_rating || 0);
+  const cta = ctaForRole(user?.role);
+  const returnState = (location.state || null) as TutorDetailsLocationState | null;
+  const returnPath = safeReturnPath(returnState?.returnTo);
+  const returnLabel = returnState?.returnLabel || "Back to tutors";
 
   return (
     <div className="min-h-screen bg-white">
@@ -101,9 +110,9 @@ export function TutorDetailsPage() {
       <main className="bg-linear-to-br from-teal-50 via-white to-orange-50">
         <div className="mx-auto max-w-7xl px-6 py-8">
           <Button variant="ghost" asChild className="mb-5 px-0 text-teal-700">
-            <Link to="/tutor">
+            <Link to={returnPath}>
               <ArrowLeft className="mr-2 h-4 w-4" />
-              Back to tutors
+              {returnLabel}
             </Link>
           </Button>
 
@@ -160,9 +169,11 @@ export function TutorDetailsPage() {
                       <MapPin className="h-4 w-4 text-teal-600" />
                       {tutor.location || "Location not listed"}
                     </div>
-                    <Button asChild className="mt-6 w-full">
-                      <Link to={ctaPath(user?.role)}>{ctaLabel(user?.role)}</Link>
-                    </Button>
+                    {cta && (
+                      <Button asChild className="mt-6 w-full">
+                        <Link to={cta.path}>{cta.label}</Link>
+                      </Button>
+                    )}
                   </CardContent>
                 </Card>
 
@@ -321,22 +332,24 @@ export function TutorDetailsPage() {
                   </CardContent>
                 </Card>
 
-                <Card className="border-teal-200 bg-teal-50 shadow-sm">
-                  <CardContent className="flex flex-col gap-4 p-6 sm:flex-row sm:items-center sm:justify-between">
-                    <div>
-                      <h2 className="text-lg font-bold text-teal-950">
-                        Ready to connect?
-                      </h2>
-                      <p className="mt-1 text-sm text-teal-800">
-                        Create a gig with your subject, budget, and schedule so
-                        the tutor can apply through TutorSpot.
-                      </p>
-                    </div>
-                    <Button asChild className="shrink-0">
-                      <Link to={ctaPath(user?.role)}>{ctaLabel(user?.role)}</Link>
-                    </Button>
-                  </CardContent>
-                </Card>
+                {cta && (
+                  <Card className="border-teal-200 bg-teal-50 shadow-sm">
+                    <CardContent className="flex flex-col gap-4 p-6 sm:flex-row sm:items-center sm:justify-between">
+                      <div>
+                        <h2 className="text-lg font-bold text-teal-950">
+                          Ready to connect?
+                        </h2>
+                        <p className="mt-1 text-sm text-teal-800">
+                          Create a gig with your subject, budget, and schedule so
+                          the tutor can apply through TutorSpot.
+                        </p>
+                      </div>
+                      <Button asChild className="shrink-0">
+                        <Link to={cta.path}>{cta.label}</Link>
+                      </Button>
+                    </CardContent>
+                  </Card>
+                )}
               </section>
             </div>
           )}
