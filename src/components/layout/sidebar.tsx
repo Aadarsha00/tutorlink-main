@@ -204,6 +204,21 @@ export default function Sidebar({
           ],
         },
         {
+          icon: ChatIcon,
+          label: "Chat Monitor",
+          path: "/admin/chats",
+        },
+        {
+          icon: AlertCircleIcon,
+          label: "Reports & Disputes",
+          path: "/admin/reports",
+        },
+        {
+          icon: ChatIcon,
+          label: "Send Notifications",
+          path: "/admin/notifications/send",
+        },
+        {
           icon: Briefcase01Icon,
           label: "Job Management",
           path: "/admin/jobs",
@@ -296,8 +311,8 @@ export default function Sidebar({
       <div className="flex items-center justify-between p-6  sticky top-0 bg-white z-10">
         {sidebarOpen && (
           <Link to={`/${user.role}/dashboard`} className="flex items-center ">
-            <img src="/logo.png" alt="TutorLink Logo" className="h-8" />
-            <h1 className="text-xl font-bold">TutorLink</h1>
+            <img src="/logo.png" alt="Seekshalaya Logo" className="h-8" />
+            <h1 className="text-xl font-bold">Seekshalaya</h1>
           </Link>
         )}
         <button
@@ -307,7 +322,7 @@ export default function Sidebar({
           {sidebarOpen ? (
             <HugeiconsIcon icon={Cancel01Icon} size={20} />
           ) : (
-            <img src="/logo.png" alt="TutorLink Logo" className="w-20" />
+            <img src="/logo.png" alt="Seekshalaya Logo" className="w-20" />
           )}
         </button>
       </div>

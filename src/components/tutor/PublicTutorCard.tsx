@@ -52,6 +52,11 @@ export function PublicTutorCard({ tutor }: { tutor: TeacherProfile }) {
                   Verified
                 </Badge>
               )}
+              {tutor.user.moderation_status === "suspended" && (
+                <Badge className="bg-amber-100 px-2 py-0 text-[11px] text-amber-700">
+                  Suspended
+                </Badge>
+              )}
             </div>
             <Link to={detailPath} className="block">
               <h2 className="line-clamp-1 text-lg font-bold text-gray-900 hover:text-teal-700">

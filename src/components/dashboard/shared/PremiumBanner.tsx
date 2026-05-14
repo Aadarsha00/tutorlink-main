@@ -43,7 +43,7 @@ export function PremiumBanner({ premium }: PremiumBannerProps) {
             </div>
           </div>
           <Button variant="outline" asChild>
-            <Link to="/premium">Manage Subscription</Link>
+            <Link to="/teacher/premium">Manage Subscription</Link>
           </Button>
         </div>
       </CardContent>

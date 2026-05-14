@@ -16,6 +16,10 @@ export interface User {
   profile_picture_verified?: boolean | null;
   profile_picture_rejection_reason?: string;
   is_active: boolean;
+  moderation_status?: "active" | "suspended" | "blocked";
+  suspended_until?: string | null;
+  moderation_reason?: string;
+  moderated_at?: string | null;
   is_email_verified: boolean;
   created_at: string;
   updated_at: string;
@@ -263,6 +267,9 @@ export interface TeacherProfile {
   documents: VerificationDocument[];
   is_premium: boolean;
   premium_expires_at?: string;
+  gig_applications_used?: number;
+  gig_applications_available?: number | null;
+  free_gig_application_limit?: number;
   average_rating: number;
   total_reviews: number;
   created_at: string;
@@ -318,6 +325,9 @@ export interface Gig {
   updated_at: string;
   published_at?: string;
   closed_at?: string;
+  is_boosted?: boolean;
+  boosted_until?: string | null;
+  boost_plan_id?: string;
   applications_count?: number;
   progress_percentage?: number;
   days_remaining?: number;
@@ -462,6 +472,8 @@ export interface PremiumSubscription {
   id: number;
   teacher: number;
   teacher_name: string;
+  plan_id?: string;
+  billing_cycle?: string;
   amount: number;
   duration_days: number;
   starts_at?: string;
@@ -502,6 +514,9 @@ export interface MessagingUser {
   full_name: string;
   role: "teacher" | "parent" | "admin";
   profile_picture?: string | null;
+  is_active?: boolean;
+  suspended_until?: string | null;
+  moderation_status?: "active" | "suspended" | "blocked";
 }
 
 export interface ChatMessage {
@@ -511,6 +526,51 @@ export interface ChatMessage {
   body: string;
   read_at?: string | null;
   created_at: string;
+}
+
+export interface UserReport {
+  id: number;
+  reporter: { id: number; email: string; full_name: string; role: string } | null;
+  reporter_email: string;
+  category: "bug" | "content" | "user" | "message" | "payment" | "dispute" | "safety" | "other";
+  target_type: "bug" | "user" | "profile" | "gig" | "job" | "application" | "message" | "document" | "payment" | "other";
+  target_id?: number | null;
+  target_label: string;
+  page_url: string;
+  title: string;
+  description: string;
+  status: "open" | "in_review" | "resolved" | "dismissed";
+  priority: "low" | "medium" | "high" | "urgent";
+  assigned_to: { id: number; email: string; full_name: string; role: string } | null;
+  resolution_note: string;
+  metadata: Record<string, any>;
+  created_at: string;
+  updated_at: string;
+  resolved_at?: string | null;
+}
+
+export interface CreateReportData {
+  reporter_email?: string;
+  category: UserReport["category"];
+  target_type: UserReport["target_type"];
+  target_id?: number | null;
+  target_label?: string;
+  page_url?: string;
+  title: string;
+  description: string;
+}
+
+export interface BroadcastNotificationData {
+  title: string;
+  message: string;
+  link?: string;
+  audience: "all" | "roles" | "users";
+  roles?: Array<"teacher" | "parent" | "admin">;
+  user_ids?: number[];
+  emails?: string[];
+  active_only?: boolean;
+  joined_after?: string;
+  joined_before?: string;
 }
 
 export interface ChatConversation {
@@ -655,6 +715,9 @@ export interface EnhancedTeacherStats {
   // Summary metrics
   summary: {
     total_applications: number;
+    free_gig_application_limit: number;
+    gig_applications_used: number;
+    gig_applications_available: number | null;
     pending_applications: number;
     selected_applications: number;
     accepted_applications: number;
@@ -1025,11 +1088,25 @@ export interface ProfileCompletion {
 
 export interface PremiumPlan {
   id: string;
+  plan_id?: string;
+  billing_cycle?: "monthly" | "yearly";
   name: string;
+  tagline?: string;
   duration_days: number;
   amount: number;
   currency: string;
   savings?: number;
+  discount_percent?: number;
+  popular?: boolean;
+  features: string[];
+}
+
+export interface GigBoostPlan {
+  id: string;
+  name: string;
+  amount: number;
+  duration_days: number;
+  currency: string;
   popular?: boolean;
   features: string[];
 }
@@ -1044,10 +1121,13 @@ export interface PremiumEligibility {
   reason: string | null;
   current_subscription?: PremiumSubscription;
   stats?: {
+    gig_applications?: number;
     completed_gigs: number;
     selected_applications: number;
     active_gigs: number;
   };
+  free_application_limit?: number;
+  remaining_free_applications?: number;
 }
 
 export interface PremiumSubscribeResponse {
@@ -1084,6 +1164,31 @@ export interface GigPayment {
 
 export interface InitiateGigPaymentResponse {
   payment: GigPayment;
+  message: string;
+  payment_url?: string;
+  pidx?: string;
+}
+
+export interface GigBoostPayment {
+  id: number;
+  gig: number;
+  gig_title: string;
+  parent: number;
+  parent_name: string;
+  plan_id: string;
+  amount: number;
+  duration_days: number;
+  status: "pending" | "completed" | "failed" | "refunded";
+  khalti_pidx?: string;
+  khalti_transaction_id?: string;
+  starts_at?: string;
+  expires_at?: string;
+  created_at: string;
+  paid_at?: string;
+}
+
+export interface InitiateGigBoostResponse {
+  boost: GigBoostPayment;
   message: string;
   payment_url?: string;
   pidx?: string;
@@ -1170,6 +1275,10 @@ export const userAPI = {
       .then((r) => r.data),
   stats: () =>
     axiosInstance.get<UserStats>("/users/stats/").then((r) => r.data),
+  moderate: (
+    id: number,
+    data: { action: "suspend" | "block" | "reactivate"; days?: number; reason?: string }
+  ) => axiosInstance.post<User>(`/users/${id}/moderate/`, data).then((r) => r.data),
 };
 
 /* ======================================================
@@ -1639,6 +1748,34 @@ export const notificationAPI = {
     axiosInstance
       .post<{ marked_count: number }>("/notifications/read-all/")
       .then((r) => r.data),
+  broadcast: (data: BroadcastNotificationData) =>
+    axiosInstance
+      .post<{ created_count: number; matched_users: number; email_count: number }>(
+        "/notifications/admin/broadcast/",
+        data
+      )
+      .then((r) => r.data),
+};
+
+export const reportsAPI = {
+  create: (data: CreateReportData) =>
+    axiosInstance.post<UserReport>("/reports/", data).then((r) => r.data),
+  adminList: (params?: {
+    status?: string;
+    category?: string;
+    target_type?: string;
+  }) =>
+    axiosInstance
+      .get<UserReport[] | { results: UserReport[] }>("/reports/admin/", { params })
+      .then((r) => (Array.isArray(r.data) ? r.data : r.data.results || [])),
+  adminUpdate: (
+    id: number,
+    data: Partial<
+      Pick<UserReport, "status" | "priority" | "resolution_note"> & {
+        assigned_to_id: number | null;
+      }
+    >
+  ) => axiosInstance.patch<UserReport>(`/reports/admin/${id}/`, data).then((r) => r.data),
 };
 
 /* ======================================================
@@ -1679,6 +1816,18 @@ export const messagingAPI = {
   unreadCount: () =>
     axiosInstance
       .get<{ unread_count: number }>("/messaging/unread-count/")
+      .then((r) => r.data),
+  adminConversations: () =>
+    axiosInstance
+      .get<ChatConversation[]>("/messaging/admin/conversations/")
+      .then((r) => r.data),
+  adminMessages: (conversationId: number) =>
+    axiosInstance
+      .get<ChatMessage[]>(`/messaging/admin/conversations/${conversationId}/messages/`)
+      .then((r) => r.data),
+  adminDeleteMessage: (conversationId: number, messageId: number) =>
+    axiosInstance
+      .delete(`/messaging/admin/conversations/${conversationId}/messages/${messageId}/`)
       .then((r) => r.data),
 };
 
@@ -1807,7 +1956,7 @@ export const premiumAPI = {
       .then((r) => r.data),
 
   // Subscribe to premium
-  subscribe: (data: { amount: number; duration_days: number }) =>
+  subscribe: (data: { plan_option_id: string }) =>
     axiosInstance
       .post<PremiumSubscribeResponse>("/profiles/premium/subscribe/", data)
       .then((r) => r.data),
@@ -1869,6 +2018,28 @@ export const gigPaymentAPI = {
       .then((r) => r.data),
 };
 
+export const gigBoostAPI = {
+  plans: () =>
+    axiosInstance
+      .get<{ plans: GigBoostPlan[]; count: number }>("/payments/gig-boosts/plans/")
+      .then((r) => r.data),
+
+  initiate: (gigId: number, planId: string) =>
+    axiosInstance
+      .post<InitiateGigBoostResponse>(`/payments/gig-boosts/initiate/${gigId}/`, {
+        plan_id: planId,
+      })
+      .then((r) => r.data),
+
+  verify: (pidx: string) =>
+    axiosInstance
+      .post<{ success: boolean; message: string; boost?: GigBoostPayment; status?: string }>(
+        "/payments/gig-boosts/verify/",
+        { pidx }
+      )
+      .then((r) => r.data),
+};
+
 /* ======================================================
    EXPORT
 ====================================================== */
@@ -1883,12 +2054,14 @@ export default {
   jobApplications: jobApplicationAPI,
   payments: paymentAPI,
   notifications: notificationAPI,
+  reports: reportsAPI,
   messaging: messagingAPI,
   ratings: ratingAPI,
   stats: statsAPI,
   documents: documentAPI,
   profileCompletion: profileCompletionAPI,
   premium: premiumAPI,
+  gigBoost: gigBoostAPI,
   gigPayments: gigPaymentAPI,
   public: publicAPI,
 };

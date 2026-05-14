@@ -106,8 +106,12 @@ export default function PremiumVerifyPage() {
     verifyPayment();
   };
 
+  const handleGoToDashboard = () => {
+    navigate("/teacher/dashboard");
+  };
+
   const handleGoToPremium = () => {
-    navigate("/premium");
+    navigate("/teacher/premium");
   };
 
   const handleGoHome = () => {
@@ -334,9 +338,9 @@ export default function PremiumVerifyPage() {
 
             {/* Action Buttons */}
             <div className="flex flex-col sm:flex-row gap-3">
-              <Button onClick={handleGoToPremium} className="flex-1" size="lg">
+              <Button onClick={handleGoToDashboard} className="flex-1" size="lg">
                 <HugeiconsIcon icon={Crown02Icon} className="mr-2" size={18} />
-                View Premium Dashboard
+                Go to Teacher Dashboard
               </Button>
               <Button
                 onClick={handleGoHome}

@@ -32,6 +32,9 @@ import AdminGigs from "@/pages/dashboard/admin/admin-gigs";
 import AdminAllUsersPage from "@/pages/dashboard/admin/admin-all-users";
 import AdminTeachersPage from "@/pages/dashboard/admin/admin-teachers";
 import AdminParentsPage from "@/pages/dashboard/admin/admin-parents";
+import AdminChatsPage from "@/pages/dashboard/admin/admin-chats";
+import AdminReportsPage from "@/pages/dashboard/admin/admin-reports";
+import AdminNotificationsPage from "@/pages/dashboard/admin/admin-notifications";
 import PremiumPage from "@/pages/payments/premium-page";
 import { PaymentVerificationPage } from "@/pages/payments/gig-payment-verification-page";
 import PremiumVerifyPage from "@/pages/payments/premium-verify-page";
@@ -343,6 +346,18 @@ function App() {
         }
       />
       <Route
+        path="/payment/gig-boost/verify"
+        element={
+          <ProtectedRoute>
+            <RoleProtectedRoute allowedRoles={["parent"]}>
+              <DashboardLayout>
+                <PaymentVerificationPage />
+              </DashboardLayout>
+            </RoleProtectedRoute>
+          </ProtectedRoute>
+        }
+      />
+      <Route
         path="/jobs"
         element={
           <ProtectedRoute>
@@ -469,6 +484,42 @@ function App() {
             <RoleProtectedRoute allowedRoles={["admin"]}>
               <DashboardLayout>
                 <AdminDisputedGigs />
+              </DashboardLayout>
+            </RoleProtectedRoute>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="admin/chats"
+        element={
+          <ProtectedRoute>
+            <RoleProtectedRoute allowedRoles={["admin"]}>
+              <DashboardLayout>
+                <AdminChatsPage />
+              </DashboardLayout>
+            </RoleProtectedRoute>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="admin/reports"
+        element={
+          <ProtectedRoute>
+            <RoleProtectedRoute allowedRoles={["admin"]}>
+              <DashboardLayout>
+                <AdminReportsPage />
+              </DashboardLayout>
+            </RoleProtectedRoute>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="admin/notifications/send"
+        element={
+          <ProtectedRoute>
+            <RoleProtectedRoute allowedRoles={["admin"]}>
+              <DashboardLayout>
+                <AdminNotificationsPage />
               </DashboardLayout>
             </RoleProtectedRoute>
           </ProtectedRoute>

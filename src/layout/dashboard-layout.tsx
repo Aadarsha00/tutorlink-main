@@ -4,6 +4,7 @@ import { NotificationDropdown } from "@/components/notifications/notification-co
 import { Avatar, AvatarImage } from "@/components/ui/avatar";
 import { ProfileCompletionBanner } from "@/components/profile/profile-completion-banner";
 import { DocumentVerificationBanner } from "@/components/profile/document-verification-banner";
+import { ReportDialog } from "@/components/reports/ReportDialog";
 import { useAuth } from "@/hooks/useAuth";
 
 export function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -80,6 +81,10 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
               </div>
             </div>
             <div className="flex items-center gap-4">
+              <ReportDialog
+                user={user}
+                trigger={<button className="rounded-md border px-3 py-2 text-sm font-medium text-neutral-700 hover:bg-neutral-50">Report</button>}
+              />
               <NotificationDropdown />
             </div>
           </div>

@@ -56,7 +56,7 @@ export function useAdminDashboard() {
   const loadDashboardData = async (customFilters?: {
     date_from?: string;
     date_to?: string;
-  }) => {
+  }, rangeOverride?: string) => {
     try {
       setFilterLoading(true);
       setError(null);
@@ -64,8 +64,8 @@ export function useAdminDashboard() {
       let filters;
       if (customFilters) {
         filters = customFilters;
-      } else if (timeRange !== "all") {
-        filters = calculateDateRange(timeRange);
+      } else if ((rangeOverride || timeRange) !== "all") {
+        filters = calculateDateRange(rangeOverride || timeRange);
       }
 
       const data = await api.stats.admin(filters);
@@ -87,7 +87,7 @@ export function useAdminDashboard() {
       setShowCustomDate(false);
       setDateFrom("");
       setDateTo("");
-      loadDashboardData();
+      loadDashboardData(undefined, value);
     }
   };
 

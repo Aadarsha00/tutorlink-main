@@ -32,6 +32,26 @@ const CHART_COLORS = {
 
 const PIE_COLORS = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6"];
 
+const asPieData = (
+  data: unknown,
+  nameKey = "name",
+  valueKey = "value"
+) => {
+  if (Array.isArray(data)) {
+    return data.map((item: any) => ({
+      name: item[nameKey] ?? item.subject ?? item.grade ?? "Unknown",
+      value: Number(item[valueKey] ?? item.earnings ?? item.count ?? 0),
+    }));
+  }
+
+  return Object.entries((data as Record<string, unknown>) || {}).map(
+    ([name, value]) => ({
+      name: name.charAt(0).toUpperCase() + name.slice(1),
+      value: Number(value || 0),
+    })
+  );
+};
+
 interface TeacherChartsProps {
   chartType: "applications" | "earnings" | "success";
   onChartTypeChange: (type: "applications" | "earnings" | "success") => void;
@@ -47,6 +67,13 @@ export function TeacherCharts({
   charts,
   distributions,
 }: TeacherChartsProps) {
+  const applicationsByStatus = asPieData(distributions?.applications_by_status);
+  const earningsBySubject = asPieData(
+    distributions?.earnings_by_subject,
+    "subject",
+    "earnings"
+  );
+
   return (
     <>
       {/* Main Chart */}
@@ -200,12 +227,7 @@ export function TeacherCharts({
             <ResponsiveContainer width="100%" height={300}>
               <PieChart>
                 <Pie
-                  data={Object.entries(
-                    distributions?.applications_by_status || {}
-                  ).map(([name, value]) => ({
-                    name: name.charAt(0).toUpperCase() + name.slice(1),
-                    value,
-                  }))}
+                  data={applicationsByStatus}
                   cx="50%"
                   cy="50%"
                   labelLine={false}
@@ -216,9 +238,7 @@ export function TeacherCharts({
                   fill="#8884d8"
                   dataKey="value"
                 >
-                  {Object.keys(
-                    distributions?.applications_by_status || {}
-                  ).map((_, index) => (
+                  {applicationsByStatus.map((_, index) => (
                     <Cell
                       key={`cell-${index}`}
                       fill={PIE_COLORS[index % PIE_COLORS.length]}
@@ -240,12 +260,7 @@ export function TeacherCharts({
             <ResponsiveContainer width="100%" height={300}>
               <PieChart>
                 <Pie
-                  data={Object.entries(
-                    distributions?.earnings_by_subject || {}
-                  ).map(([name, value]) => ({
-                    name,
-                    value,
-                  }))}
+                  data={earningsBySubject}
                   cx="50%"
                   cy="50%"
                   labelLine={false}
@@ -256,9 +271,7 @@ export function TeacherCharts({
                   fill="#8884d8"
                   dataKey="value"
                 >
-                  {Object.keys(
-                    distributions?.earnings_by_subject || {}
-                  ).map((_, index) => (
+                  {earningsBySubject.map((_, index) => (
                     <Cell
                       key={`cell-${index}`}
                       fill={PIE_COLORS[index % PIE_COLORS.length]}

@@ -45,6 +45,21 @@ export function AdminCharts({
   charts,
   distributions,
 }: AdminChartsProps) {
+  const revenueData = charts?.revenue_by_month || [];
+  const userData = charts?.user_growth || [];
+  const gigData = charts?.gig_creation || [];
+  const usersByRole = distributions?.users_by_role || {};
+  const revenueBySource = {
+    gigs: revenueData.reduce(
+      (total: number, item: any) => total + Number(item.gig_revenue || 0),
+      0
+    ),
+    premium: revenueData.reduce(
+      (total: number, item: any) => total + Number(item.premium_revenue || 0),
+      0
+    ),
+  };
+
   return (
     <>
       {/* Main Chart */}
@@ -57,10 +72,10 @@ export function AdminCharts({
             {chartType === "gigs" && "Gig Analytics"}
             <Badge variant="outline" className="ml-2">
               {(chartType === "revenue"
-                ? charts?.revenue_trends
+                ? revenueData
                 : chartType === "users"
-                ? charts?.user_trends
-                : charts?.gig_trends
+                ? userData
+                : gigData
               )?.length || 0}{" "}
               data points
             </Badge>
@@ -95,7 +110,7 @@ export function AdminCharts({
               </div>
               <ResponsiveContainer width="100%" height={350}>
                 {chartType === "revenue" && (
-                  <LineChart data={charts?.revenue_trends}>
+                  <LineChart data={revenueData}>
                     <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
                     <XAxis dataKey="month" />
                     <YAxis />
@@ -103,43 +118,55 @@ export function AdminCharts({
                     <Legend />
                     <Line
                       type="monotone"
-                      dataKey="revenue"
+                      dataKey="total_revenue"
                       stroke={CHART_COLORS.success}
                       strokeWidth={2}
                       name="Total Revenue"
                     />
                     <Line
                       type="monotone"
-                      dataKey="commission"
+                      dataKey="gig_revenue"
                       stroke={CHART_COLORS.primary}
                       strokeWidth={2}
-                      name="Commission"
+                      name="Gig Fees"
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="premium_revenue"
+                      stroke={CHART_COLORS.purple}
+                      strokeWidth={2}
+                      name="Premium"
                     />
                   </LineChart>
                 )}
 
                 {chartType === "users" && (
-                  <BarChart data={charts?.user_trends}>
+                  <BarChart data={userData}>
                     <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
                     <XAxis dataKey="month" />
                     <YAxis />
                     <Tooltip />
                     <Legend />
                     <Bar
-                      dataKey="teachers"
+                      dataKey="teacher"
                       fill={CHART_COLORS.primary}
                       name="Teachers"
                     />
                     <Bar
-                      dataKey="parents"
+                      dataKey="parent"
                       fill={CHART_COLORS.success}
                       name="Parents"
+                    />
+                    <Bar
+                      dataKey="admin"
+                      fill={CHART_COLORS.warning}
+                      name="Admins"
                     />
                   </BarChart>
                 )}
 
                 {chartType === "gigs" && (
-                  <LineChart data={charts?.gig_trends}>
+                  <LineChart data={gigData}>
                     <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
                     <XAxis dataKey="month" />
                     <YAxis />
@@ -147,17 +174,10 @@ export function AdminCharts({
                     <Legend />
                     <Line
                       type="monotone"
-                      dataKey="posted"
+                      dataKey="count"
                       stroke={CHART_COLORS.primary}
                       strokeWidth={2}
-                      name="Posted"
-                    />
-                    <Line
-                      type="monotone"
-                      dataKey="completed"
-                      stroke={CHART_COLORS.success}
-                      strokeWidth={2}
-                      name="Completed"
+                      name="Created"
                     />
                   </LineChart>
                 )}
@@ -179,7 +199,7 @@ export function AdminCharts({
               <PieChart>
                 <Pie
                   data={Object.entries(
-                    distributions?.users_by_type || {}
+                    usersByRole
                   ).map(([name, value]) => ({
                     name: name.charAt(0).toUpperCase() + name.slice(1),
                     value,
@@ -194,7 +214,7 @@ export function AdminCharts({
                   fill="#8884d8"
                   dataKey="value"
                 >
-                  {Object.keys(distributions?.users_by_type || {}).map(
+                  {Object.keys(usersByRole).map(
                     (_, index) => (
                       <Cell
                         key={`cell-${index}`}
@@ -219,7 +239,7 @@ export function AdminCharts({
               <PieChart>
                 <Pie
                   data={Object.entries(
-                    distributions?.revenue_by_source || {}
+                    revenueBySource
                   ).map(([name, value]) => ({
                     name: name.charAt(0).toUpperCase() + name.slice(1),
                     value,
@@ -234,7 +254,7 @@ export function AdminCharts({
                   fill="#8884d8"
                   dataKey="value"
                 >
-                  {Object.keys(distributions?.revenue_by_source || {}).map(
+                  {Object.keys(revenueBySource).map(
                     (_, index) => (
                       <Cell
                         key={`cell-${index}`}

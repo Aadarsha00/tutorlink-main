@@ -254,6 +254,8 @@ function ApplyDialog({ gig, onSuccess }: { gig: Gig; onSuccess: () => void }) {
   const [proposedRate, setProposedRate] = React.useState("");
   const [submitting, setSubmitting] = React.useState(false);
   const [error, setError] = React.useState("");
+  const [premiumRequired, setPremiumRequired] = React.useState(false);
+  const navigate = useNavigate();
 
   const handleSubmit = async () => {
     if (!coverLetter.trim()) {
@@ -268,6 +270,7 @@ function ApplyDialog({ gig, onSuccess }: { gig: Gig; onSuccess: () => void }) {
     try {
       setSubmitting(true);
       setError("");
+      setPremiumRequired(false);
       await api.applications.create({
         gig: gig.id,
         cover_letter: coverLetter,
@@ -279,6 +282,12 @@ function ApplyDialog({ gig, onSuccess }: { gig: Gig; onSuccess: () => void }) {
       onSuccess();
     } catch (err: any) {
       console.error("Failed to apply", err);
+      const premiumMessage = err.response?.data?.premium_required;
+      if (premiumMessage) {
+        setPremiumRequired(true);
+        setError(Array.isArray(premiumMessage) ? premiumMessage[0] : premiumMessage);
+        return;
+      }
       setError(
         err.response?.data?.detail ||
           err.response?.data?.non_field_errors?.[0] ||
@@ -310,8 +319,17 @@ function ApplyDialog({ gig, onSuccess }: { gig: Gig; onSuccess: () => void }) {
 
         <div className="space-y-4 py-4">
           {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
-              {error}
+            <div className="rounded border border-red-200 bg-red-50 px-4 py-3 text-red-700">
+              <p>{error}</p>
+              {premiumRequired && (
+                <Button
+                  className="mt-3"
+                  size="sm"
+                  onClick={() => navigate("/teacher/premium")}
+                >
+                  View Premium Plans
+                </Button>
+              )}
             </div>
           )}
 

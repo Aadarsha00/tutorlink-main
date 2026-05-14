@@ -16,13 +16,10 @@ import {
   Crown02Icon,
   Loading03Icon,
   AlertCircleIcon,
-  Briefcase01Icon,
-  FileCheck,
   Calendar03Icon,
   ClockIcon,
   Info,
   CancelCircleIcon,
-  Shield,
 } from "@hugeicons/core-free-icons";
 
 import api, {
@@ -30,7 +27,6 @@ import api, {
   type PremiumEligibility,
   type PremiumSubscription,
 } from "@/services/api";
-import { useNavigate } from "react-router-dom";
 
 export default function PremiumPage() {
   /* ================= STATE ================= */
@@ -44,7 +40,9 @@ export default function PremiumPage() {
   const [loading, setLoading] = React.useState(true);
   const [subscribing, setSubscribing] = React.useState<string | null>(null);
   const [error, setError] = React.useState<string | null>(null);
-  const navigate = useNavigate();
+  const [billingCycle, setBillingCycle] = React.useState<"monthly" | "yearly">(
+    "monthly"
+  );
 
   /* ================= LOAD DATA ================= */
 
@@ -90,15 +88,14 @@ export default function PremiumPage() {
       setError(null);
 
       const res = await api.premium.subscribe({
-        amount: plan.amount,
-        duration_days: plan.duration_days,
+        plan_option_id: plan.id,
       });
 
       if (!res.payment_url) {
         throw new Error("Payment URL not returned");
       }
 
-      navigate(res.payment_url);
+      window.location.assign(res.payment_url);
     } catch (err: any) {
       setError(
         err?.response?.data?.error || err.message || "Subscription failed"
@@ -114,6 +111,7 @@ export default function PremiumPage() {
       s.status === "active" &&
       (!s.expires_at || new Date(s.expires_at) > new Date())
   );
+  const visiblePlans = plans.filter((plan) => plan.billing_cycle === billingCycle);
 
   const getDaysRemaining = (expiryDate: string) => {
     const now = new Date();
@@ -155,7 +153,8 @@ export default function PremiumPage() {
             Upgrade to <span className="text-emerald-600">Premium</span>
           </h1>
           <p className="text-muted-foreground">
-            Get priority visibility and unlimited applications
+            Upgrade for unlimited gig applications and stronger tutor
+            visibility after your profile and documents are verified.
           </p>
         </div>
 
@@ -254,141 +253,24 @@ export default function PremiumPage() {
               }
             >
               {eligibility?.eligible
-                ? "You're Eligible for Premium!"
-                : "Premium Eligibility Requirements"}
+                ? "Premium is available"
+                : "Verification Required"}
             </AlertTitle>
             <AlertDescription>
               {eligibility?.eligible ? (
                 <p className="text-green-700">
-                  You meet all requirements to upgrade to Premium. Choose a plan
-                  below to get started.
+                  Your profile and required documents are verified. You can
+                  subscribe to Premium now.
                 </p>
               ) : (
                 <div className="space-y-2">
                   <p className="text-orange-700 font-medium">
                     {eligibility?.reason}
                   </p>
-                  <div className="mt-3">
-                    <p className="text-sm font-semibold mb-2 text-orange-900">
-                      To become eligible, you need to:
-                    </p>
-                    <ul className="space-y-1 text-sm text-orange-800">
-                      <li className="flex items-start gap-2">
-                        <span>•</span>
-                        <span>Complete at least one gig successfully, OR</span>
-                      </li>
-                      <li className="flex items-start gap-2">
-                        <span>•</span>
-                        <span>
-                          Be selected by a parent for at least one gig
-                        </span>
-                      </li>
-                    </ul>
-                  </div>
                 </div>
               )}
             </AlertDescription>
           </Alert>
-        )}
-
-        {/* Stats Grid */}
-        {eligibility?.stats && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-            <Card>
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-muted-foreground mb-1">
-                      Completed Gigs
-                    </p>
-                    <p className="text-2xl font-bold">
-                      {eligibility.stats.completed_gigs}
-                    </p>
-                    {eligibility.stats.completed_gigs > 0 && (
-                      <Badge
-                        variant="outline"
-                        className="mt-2 border-green-300 text-green-700"
-                      >
-                        <HugeiconsIcon
-                          icon={CheckmarkCircle01Icon}
-                          size={12}
-                          className="mr-1"
-                        />
-                        Eligible
-                      </Badge>
-                    )}
-                  </div>
-                  <div className="h-12 w-12 rounded-full bg-green-100 flex items-center justify-center">
-                    <HugeiconsIcon
-                      icon={FileCheck}
-                      className="text-green-600"
-                      size={24}
-                    />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-muted-foreground mb-1">
-                      Selected Applications
-                    </p>
-                    <p className="text-2xl font-bold">
-                      {eligibility.stats.selected_applications}
-                    </p>
-                    {eligibility.stats.selected_applications > 0 && (
-                      <Badge
-                        variant="outline"
-                        className="mt-2 border-blue-300 text-blue-700"
-                      >
-                        <HugeiconsIcon
-                          icon={CheckmarkCircle01Icon}
-                          size={12}
-                          className="mr-1"
-                        />
-                        Eligible
-                      </Badge>
-                    )}
-                  </div>
-                  <div className="h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center">
-                    <HugeiconsIcon
-                      icon={Shield}
-                      className="text-blue-600"
-                      size={24}
-                    />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-muted-foreground mb-1">
-                      Active Gigs
-                    </p>
-                    <p className="text-2xl font-bold">
-                      {eligibility.stats.active_gigs}
-                    </p>
-                    <p className="text-xs text-muted-foreground mt-2">
-                      Currently teaching
-                    </p>
-                  </div>
-                  <div className="h-12 w-12 rounded-full bg-purple-100 flex items-center justify-center">
-                    <HugeiconsIcon
-                      icon={Briefcase01Icon}
-                      className="text-purple-600"
-                      size={24}
-                    />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
         )}
 
         {/* Premium Plans */}
@@ -401,10 +283,31 @@ export default function PremiumPage() {
               <p className="text-center text-muted-foreground mb-6">
                 Select the plan that works best for you
               </p>
+              <div className="mx-auto flex w-fit rounded-lg border border-border bg-muted p-1">
+                <Button
+                  type="button"
+                  variant={billingCycle === "monthly" ? "default" : "ghost"}
+                  size="sm"
+                  onClick={() => setBillingCycle("monthly")}
+                >
+                  Monthly
+                </Button>
+                <Button
+                  type="button"
+                  variant={billingCycle === "yearly" ? "default" : "ghost"}
+                  size="sm"
+                  onClick={() => setBillingCycle("yearly")}
+                >
+                  Yearly
+                  <Badge variant="secondary" className="ml-2">
+                    Save 17%
+                  </Badge>
+                </Button>
+              </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-              {plans.map((plan) => (
+            <div className="mx-auto grid max-w-md grid-cols-1 gap-6 mb-8">
+              {visiblePlans.map((plan) => (
                 <Card
                   key={plan.id}
                   className={`relative ${
@@ -419,6 +322,9 @@ export default function PremiumPage() {
 
                   <CardHeader>
                     <CardTitle>{plan.name}</CardTitle>
+                    {plan.tagline && (
+                      <p className="text-sm text-muted-foreground">{plan.tagline}</p>
+                    )}
                     <CardDescription>
                       <div className="mt-2">
                         <span className="text-3xl font-bold text-foreground">
@@ -426,7 +332,7 @@ export default function PremiumPage() {
                         </span>
                       </div>
                       <div className="text-sm mt-1">
-                        for {plan.duration_days} days
+                        {billingCycle === "monthly" ? "per month" : "per year"}
                       </div>
                       {plan.savings && (
                         <Badge

@@ -32,6 +32,7 @@ import api from "@/services/api";
 import { Link, useNavigate } from "react-router-dom";
 import type {
   Gig,
+  GigBoostPlan,
   GigStatus,
   ParentDocumentType,
   ParentVerificationDocument,
@@ -76,6 +77,11 @@ export default function ParentMyGigs() {
   const [statusFilter, setStatusFilter] = React.useState<string>("all");
   const [deleteLoading, setDeleteLoading] = React.useState<number | null>(null);
   const [createGigBlocked, setCreateGigBlocked] = React.useState(false);
+  const [boostPlans, setBoostPlans] = React.useState<GigBoostPlan[]>([]);
+  const [selectedBoostPlans, setSelectedBoostPlans] = React.useState<
+    Record<number, string>
+  >({});
+  const [boostingGigId, setBoostingGigId] = React.useState<number | null>(null);
   const navigate = useNavigate();
 
   React.useEffect(() => {
@@ -93,6 +99,24 @@ export default function ParentMyGigs() {
       const response = await api.gigs.list();
       const gigsData = response.results || [];
       setGigs(gigsData);
+      if (!boostPlans.length) {
+        api.gigBoost
+          .plans()
+          .then((data) => {
+            setBoostPlans(data.plans);
+            const defaultPlan = data.plans.find((plan) => plan.popular) || data.plans[0];
+            if (defaultPlan) {
+              setSelectedBoostPlans((current) => {
+                const next = { ...current };
+                gigsData.forEach((gig) => {
+                  next[gig.id] ||= defaultPlan.id;
+                });
+                return next;
+              });
+            }
+          })
+          .catch(() => undefined);
+      }
     } catch (err: any) {
       console.error("Failed to load gigs", err);
       setError(err.response?.data?.detail || "Failed to load gigs");
@@ -132,6 +156,27 @@ export default function ParentMyGigs() {
       toast.error(err.response?.data?.detail || "Failed to delete gig");
     } finally {
       setDeleteLoading(null);
+    }
+  };
+
+  const handleBoostGig = async (gigId: number) => {
+    const planId = selectedBoostPlans[gigId] || boostPlans[0]?.id;
+    if (!planId) {
+      toast.error("No boost plans available right now");
+      return;
+    }
+
+    try {
+      setBoostingGigId(gigId);
+      const response = await api.gigBoost.initiate(gigId, planId);
+      if (!response.payment_url) {
+        throw new Error("Payment URL not returned");
+      }
+      navigate(response.payment_url);
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || err.message || "Failed to boost gig");
+    } finally {
+      setBoostingGigId(null);
     }
   };
 
@@ -459,6 +504,11 @@ export default function ParentMyGigs() {
                             </Badge>
                             <Badge variant="secondary">{gig.subject}</Badge>
                             <Badge variant="outline">Grade {gig.grade}</Badge>
+                            {gig.is_boosted && (
+                              <Badge className="bg-emerald-100 text-emerald-700 border-emerald-300">
+                                Boosted
+                              </Badge>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -500,6 +550,43 @@ export default function ParentMyGigs() {
 
                     {/* Action Buttons */}
                     <div className="flex lg:flex-col gap-2 lg:w-32">
+                      {gig.status === "open" && (
+                        <div className="flex flex-1 gap-2 lg:flex-none lg:flex-col">
+                          <Select
+                            value={selectedBoostPlans[gig.id] || boostPlans[0]?.id || ""}
+                            onValueChange={(value) =>
+                              setSelectedBoostPlans((current) => ({
+                                ...current,
+                                [gig.id]: value,
+                              }))
+                            }
+                          >
+                            <SelectTrigger className="h-9 flex-1 lg:w-full">
+                              <SelectValue placeholder="Boost plan" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {boostPlans.map((plan) => (
+                                <SelectItem key={plan.id} value={plan.id}>
+                                  {plan.name} - Rs. {plan.amount}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="flex-1 border-emerald-300 text-emerald-700 hover:bg-emerald-50 lg:flex-none"
+                            onClick={() => handleBoostGig(gig.id)}
+                            disabled={boostingGigId === gig.id || boostPlans.length === 0}
+                          >
+                            <HugeiconsIcon
+                              icon={CreditCardIcon}
+                              data-icon="inline-start"
+                            />
+                            {boostingGigId === gig.id ? "..." : "Boost"}
+                          </Button>
+                        </div>
+                      )}
                       <Button
                         asChild
                         variant="outline"

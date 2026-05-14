@@ -1,12 +1,20 @@
 import * as React from "react";
 import { useSearchParams } from "react-router-dom";
-import { AlertTriangle, MessageCircle, RefreshCw, Send, ShieldCheck } from "lucide-react";
+import {
+  AlertTriangle,
+  ArrowLeft,
+  MessageCircle,
+  RefreshCw,
+  Send,
+  ShieldCheck,
+} from "lucide-react";
 import { toast } from "sonner";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { ReportDialog } from "@/components/reports/ReportDialog";
 import api, { type ChatConversation, type ChatMessage } from "@/services/api";
 import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
@@ -236,6 +244,13 @@ export default function MessagingPage() {
         }
       }
 
+      if (payload.type === "messages.deleted") {
+        const messageId = payload.data?.message_id as number | undefined;
+        if (messageId) {
+          setMessages((prev) => prev.filter((message) => message.id !== messageId));
+        }
+      }
+
       if (payload.type === "message.blocked") {
         toast.error(payload.data?.error || "Message blocked");
       }
@@ -321,19 +336,19 @@ export default function MessagingPage() {
   }
 
   return (
-    <div className="min-h-[calc(100vh-88px)] bg-neutral-50 p-4 md:p-6">
-      <div className="mx-auto flex h-[calc(100vh-136px)] max-w-7xl overflow-hidden rounded-lg border border-neutral-200 bg-white">
+    <div className="min-h-[calc(100vh-88px)] bg-neutral-50 p-0 sm:p-4 md:p-6">
+      <div className="mx-auto flex h-[calc(100vh-88px)] max-w-7xl overflow-hidden border border-neutral-200 bg-white sm:h-[calc(100vh-120px)] sm:rounded-lg md:h-[calc(100vh-136px)]">
         <aside
           className={cn(
-            "w-full border-r border-neutral-200 bg-white md:max-w-sm",
-            activeConversation && "hidden md:block"
+            "flex w-full min-w-0 flex-col border-r border-neutral-200 bg-white md:max-w-sm",
+            activeConversation && "hidden md:flex"
           )}
         >
-          <div className="border-b border-neutral-200 p-4">
+          <div className="shrink-0 border-b border-neutral-200 p-3 sm:p-4">
             <div className="flex items-center justify-between gap-3">
-              <div>
+              <div className="min-w-0">
                 <h1 className="text-xl font-semibold text-neutral-950">Messages</h1>
-                <p className="text-sm text-neutral-500">
+                <p className="truncate text-sm text-neutral-500">
                   Conversations from accepted selections
                 </p>
               </div>
@@ -343,7 +358,7 @@ export default function MessagingPage() {
             </div>
           </div>
 
-          <div className="h-[calc(100%-89px)] overflow-y-auto">
+          <div className="min-h-0 flex-1 overflow-y-auto">
             {conversations.length === 0 ? (
               <div className="flex h-full flex-col items-center justify-center px-6 text-center">
                 <MessageCircle className="mb-3 h-10 w-10 text-neutral-400" />
@@ -362,7 +377,7 @@ export default function MessagingPage() {
                     key={conversation.id}
                     onClick={() => setActiveId(conversation.id)}
                     className={cn(
-                      "flex w-full gap-3 border-b border-neutral-100 p-4 text-left transition-colors hover:bg-neutral-50",
+                      "flex w-full gap-3 border-b border-neutral-100 p-3 text-left transition-colors hover:bg-neutral-50 sm:p-4",
                       selected && "bg-emerald-50"
                     )}
                   >
@@ -421,16 +436,17 @@ export default function MessagingPage() {
             </div>
           ) : (
             <>
-              <header className="border-b border-neutral-200 bg-white p-4">
-                <div className="flex items-center justify-between gap-3">
-                  <div className="flex min-w-0 items-center gap-3">
+              <header className="shrink-0 border-b border-neutral-200 bg-white p-3 sm:p-4">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex min-w-0 items-center gap-2 sm:gap-3">
                     <Button
                       variant="ghost"
-                      size="sm"
-                      className="md:hidden"
+                      size="icon"
+                      className="h-9 w-9 shrink-0 md:hidden"
                       onClick={() => setActiveId(null)}
+                      aria-label="Back to conversations"
                     >
-                      Back
+                      <ArrowLeft className="h-4 w-4" />
                     </Button>
                     <div className="min-w-0">
                       <h2 className="truncate text-lg font-semibold text-neutral-950">
@@ -441,7 +457,7 @@ export default function MessagingPage() {
                       </p>
                     </div>
                   </div>
-                  <div className="flex shrink-0 items-center gap-2">
+                  <div className="flex shrink-0 flex-wrap items-center gap-2 sm:justify-end">
                     {activeConversation.gig.status === "payment_pending" &&
                       activeConversation.matched_application_id && (
                         <Button
@@ -449,7 +465,7 @@ export default function MessagingPage() {
                           size="sm"
                           onClick={cancelMatch}
                           disabled={cancelingMatch}
-                          className="border-red-300 text-red-600 hover:bg-red-50 hover:text-red-700"
+                          className="min-w-0 border-red-300 text-red-600 hover:bg-red-50 hover:text-red-700"
                         >
                           {cancelingMatch ? "Cancelling..." : "Cancel Match"}
                         </Button>
@@ -465,7 +481,7 @@ export default function MessagingPage() {
                 </div>
               </header>
 
-              <div className="border-b border-amber-200 bg-amber-50 px-4 py-3">
+              <div className="shrink-0 border-b border-amber-200 bg-amber-50 px-3 py-2 sm:px-4 sm:py-3">
                 <div className="flex gap-3 text-sm text-amber-900">
                   <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0" />
                   <p>
@@ -481,7 +497,7 @@ export default function MessagingPage() {
                 </div>
               )}
 
-              <div className="flex-1 overflow-y-auto bg-neutral-50 p-4">
+              <div className="min-h-0 flex-1 overflow-y-auto bg-neutral-50 p-3 sm:p-4">
                 {messagesLoading ? (
                   <div className="flex h-full items-center justify-center">
                     <RefreshCw className="h-6 w-6 animate-spin text-emerald-700" />
@@ -500,10 +516,15 @@ export default function MessagingPage() {
                           key={message.id}
                           className={cn("flex", mine ? "justify-end" : "justify-start")}
                         >
-                          <div className={cn("max-w-[70%]", mine && "text-right")}>
+                          <div
+                            className={cn(
+                              "flex max-w-[88%] flex-col items-start sm:max-w-[80%] md:max-w-[70%]",
+                              mine && "items-end text-right"
+                            )}
+                          >
                             <div
                               className={cn(
-                                "rounded-lg px-4 py-2 text-sm shadow-sm",
+                                "inline-block w-fit max-w-full rounded-lg px-4 py-2 text-sm shadow-sm",
                                 mine
                                   ? "bg-emerald-700 text-white"
                                   : "border border-neutral-200 bg-white text-neutral-900"
@@ -523,6 +544,23 @@ export default function MessagingPage() {
                                 ? messageStatusLabel(message, user?.id)
                                 : timeLabel(message.created_at)}
                             </p>
+                            {!mine && (
+                              <ReportDialog
+                                user={user}
+                                target={{
+                                  category: "message",
+                                  target_type: "message",
+                                  target_id: message.id,
+                                  target_label: `Message from ${message.sender.full_name}`,
+                                  title: `Report message from ${message.sender.full_name}`,
+                                }}
+                                trigger={
+                                  <button className="mt-1 px-1 text-xs text-red-600 hover:underline">
+                                    Report
+                                  </button>
+                                }
+                              />
+                            )}
                           </div>
                         </div>
                       );
@@ -532,13 +570,13 @@ export default function MessagingPage() {
                 )}
               </div>
 
-              <footer className="border-t border-neutral-200 bg-white p-4">
+              <footer className="shrink-0 border-t border-neutral-200 bg-white p-3 sm:p-4">
                 <div className="mb-2 flex items-center gap-2 text-xs text-neutral-500">
                   <AlertTriangle className="h-3.5 w-3.5" />
                   Messages with phone numbers, external contacts, exact addresses, or
                   direct payment requests are blocked.
                 </div>
-                <div className="flex items-end gap-3">
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:gap-3">
                   <Textarea
                     value={draft}
                     onChange={(event) => setDraft(event.target.value)}
@@ -548,14 +586,14 @@ export default function MessagingPage() {
                         ? "Write a message"
                         : "This conversation is closed"
                     }
-                    className="min-h-11 resize-none rounded-lg"
+                    className="max-h-32 min-h-11 resize-none rounded-lg"
                     maxLength={2000}
                     disabled={!canSendInActiveConversation}
                   />
                   <Button
                     onClick={sendMessage}
                     disabled={sending || !draft.trim() || !canSendInActiveConversation}
-                    className="h-11 rounded-lg"
+                    className="h-11 w-full rounded-lg sm:w-auto"
                   >
                     <Send className="h-4 w-4" />
                     Send

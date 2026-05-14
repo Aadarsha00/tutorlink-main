@@ -20,9 +20,9 @@ const formatCurrency = (value: number | undefined | null) =>
 export function ParentStats({ summary }: ParentStatsProps) {
   const stats = [
     {
-      label: "Active Gigs",
-      value: formatNumber(summary?.active_gigs),
-      subValue: `${formatNumber(summary?.completed_gigs)} completed`,
+      label: "Posted Gigs",
+      value: formatNumber(summary?.total_gigs),
+      subValue: `${formatNumber(summary?.active_gigs)} active, ${formatNumber(summary?.completed_gigs)} completed`,
       icon: Briefcase01Icon,
       color: "blue",
     },
@@ -34,16 +34,19 @@ export function ParentStats({ summary }: ParentStatsProps) {
       color: "green",
     },
     {
-      label: "Success Rate",
-      value: `${formatNumber(summary?.success_rate)}%`,
-      subValue: `${summary?.total_sessions || 0} sessions`,
+      label: "Applications",
+      value: formatNumber(summary?.total_applications),
+      subValue: `${formatNumber(summary?.recent_applications)} recent`,
       icon: TrendingUp,
       color: "emerald",
     },
     {
-      label: "Avg Response",
-      value: `${summary?.avg_response_time || 0}h`,
-      subValue: "response time",
+      label: "Avg Selection",
+      value:
+        typeof summary?.avg_selection_time_days === "number"
+          ? `${summary.avg_selection_time_days}d`
+          : "0d",
+      subValue: `${summary?.average_rating?.toFixed(1) || 0} rating`,
       icon: Clock02Icon,
       color: "purple",
     },

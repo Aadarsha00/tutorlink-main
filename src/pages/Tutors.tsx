@@ -100,7 +100,7 @@ export function TutorsPage() {
               Find a tutor matched to your subject, budget, and location.
             </h1>
             <p className="mt-5 text-lg leading-8 text-gray-600">
-              Browse verified teacher profiles from TutorLink. Contact details stay
+              Browse verified teacher profiles from Seekshalaya. Contact details stay
               protected until you connect through the platform.
             </p>
           </div>

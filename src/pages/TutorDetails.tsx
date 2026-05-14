@@ -158,7 +158,21 @@ export function TutorDetailsPage() {
                           Premium
                         </Badge>
                       )}
+                      {tutor.user.moderation_status === "suspended" && (
+                        <Badge className="bg-amber-100 text-amber-700">
+                          Suspended
+                        </Badge>
+                      )}
+                      {tutor.user.moderation_status === "blocked" && (
+                        <Badge className="bg-red-100 text-red-700">Blocked</Badge>
+                      )}
                     </div>
+                    {tutor.user.moderation_reason &&
+                      tutor.user.moderation_status !== "active" && (
+                        <p className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
+                          {tutor.user.moderation_reason}
+                        </p>
+                      )}
                     <h1 className="mt-4 text-2xl font-bold text-gray-900">
                       {tutorName(tutor)}
                     </h1>

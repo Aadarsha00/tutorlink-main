@@ -25,6 +25,7 @@ import {
   Calendar03Icon,
 } from "@hugeicons/core-free-icons";
 import api, { type User } from "@/services/api";
+import { AdminUserDetailsDialog } from "./AdminUserDetailsDialog";
 
 interface UserStats {
   total_users: number;
@@ -41,6 +42,7 @@ export default function AdminAllUsersPage() {
   const [searchTerm, setSearchTerm] = React.useState("");
   const [roleFilter, setRoleFilter] = React.useState<string>("all");
   const [statusFilter, setStatusFilter] = React.useState<string>("all");
+  const [selectedUser, setSelectedUser] = React.useState<User | null>(null);
 
   React.useEffect(() => {
     loadData();
@@ -297,7 +299,7 @@ export default function AdminAllUsersPage() {
                                 {user.first_name} {user.last_name}
                               </h3>
                               {getRoleBadge(user.role)}
-                              {user.is_active && (
+                              {user.moderation_status === "active" && user.is_active && (
                                 <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
                                   <HugeiconsIcon
                                     icon={CheckmarkCircle01Icon}
@@ -305,6 +307,16 @@ export default function AdminAllUsersPage() {
                                     className="mr-1"
                                   />
                                   Active
+                                </span>
+                              )}
+                              {user.moderation_status === "suspended" && (
+                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">
+                                  Suspended
+                                </span>
+                              )}
+                              {(!user.is_active || user.moderation_status === "blocked") && (
+                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                                  Blocked
                                 </span>
                               )}
                             </div>
@@ -324,7 +336,11 @@ export default function AdminAllUsersPage() {
                             </div>
                           </div>
                         </div>
-                        <Button variant="outline" size="sm">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setSelectedUser(user)}
+                        >
                           View Details
                         </Button>
                       </div>
@@ -335,6 +351,18 @@ export default function AdminAllUsersPage() {
             )}
           </CardContent>
         </Card>
+
+        <AdminUserDetailsDialog
+          user={selectedUser}
+          onOpenChange={(open) => !open && setSelectedUser(null)}
+          onUserUpdated={(updated) => {
+            setUsers((current) =>
+              current?.map((item) => (item.id === updated.id ? updated : item)) ||
+              null
+            );
+            setSelectedUser(updated);
+          }}
+        />
       </div>
     </div>
   );

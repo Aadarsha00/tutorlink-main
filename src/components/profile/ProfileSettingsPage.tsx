@@ -38,6 +38,7 @@ import {
 import api from "@/services/api";
 import type {
   User,
+  TeacherProfile,
   ChangePasswordData,
   ParentVerificationDocument,
   VerificationDocument,
@@ -273,14 +274,19 @@ function ProfileSection() {
   const [editing, setEditing] = React.useState(false);
   const [saving, setSaving] = React.useState(false);
   const [identityVerified, setIdentityVerified] = React.useState(false);
+  const [teacherProfile, setTeacherProfile] = React.useState<TeacherProfile | null>(
+    null
+  );
   const [formData, setFormData] = React.useState({
-    first_name: "",
-    last_name: "",
     profile_picture: "",
   });
   const [cropDialogOpen, setCropDialogOpen] = React.useState(false);
   const [tempImageUrl, setTempImageUrl] = React.useState("");
   const fileInputRef = React.useRef<HTMLInputElement>(null);
+
+  const navigateToPremium = () => {
+    window.location.href = "/teacher/premium";
+  };
 
   React.useEffect(() => {
     loadUser();
@@ -299,10 +305,15 @@ function ProfileSection() {
             ? await api.documents.listMyTeacher()
             : await api.documents.listMyParent();
         setIdentityVerified(hasVerifiedIdDocuments(documents));
+        if (data.role === "teacher") {
+          try {
+            setTeacherProfile(await api.profiles.teacher.get());
+          } catch {
+            setTeacherProfile(null);
+          }
+        }
       }
       setFormData({
-        first_name: data.first_name || "",
-        last_name: data.last_name || "",
         profile_picture: data.profile_picture || "",
       });
     } catch (error) {
@@ -373,25 +384,10 @@ function ProfileSection() {
         await api.auth.updateCurrentUser(formDataUpload as any);
       }
 
-      // Update other fields (name)
-      const updateData: any = {};
-      if (formData.first_name !== user?.first_name) {
-        updateData.first_name = formData.first_name;
-      }
-      if (formData.last_name !== user?.last_name) {
-        updateData.last_name = formData.last_name;
-      }
-
-      if (Object.keys(updateData).length > 0) {
-        await api.auth.updateCurrentUser(updateData);
-      }
-
       // Reload user data
       const updated = await api.auth.getCurrentUser();
       setUser(updated);
       setFormData({
-        first_name: updated.first_name || "",
-        last_name: updated.last_name || "",
         profile_picture: updated.profile_picture || "",
       });
 
@@ -433,7 +429,7 @@ function ProfileSection() {
             <div>
               <CardTitle>Profile Information</CardTitle>
               <CardDescription>
-                Manage your personal information
+                Review your KYC-verified account details
               </CardDescription>
             </div>
             {!editing && (
@@ -454,8 +450,8 @@ function ProfileSection() {
           </div>
           {!identityVerified && (
             <CardDescription className="mt-2 text-amber-700">
-              Profile edits unlock after your citizenship front and back are
-              verified.
+              Profile picture edits unlock after your citizenship front and back
+              are verified. Your name is locked because it is KYC verified.
             </CardDescription>
           )}
         </CardHeader>
@@ -512,37 +508,37 @@ function ProfileSection() {
                     <Label htmlFor="first_name">First Name</Label>
                     <Input
                       id="first_name"
-                      value={formData.first_name}
-                      onChange={(e) =>
-                        setFormData({ ...formData, first_name: e.target.value })
-                      }
-                      placeholder="Enter first name"
+                      value={user.first_name || ""}
+                      disabled
+                      readOnly
+                      aria-readonly="true"
                     />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="last_name">Last Name</Label>
                     <Input
                       id="last_name"
-                      value={formData.last_name}
-                      onChange={(e) =>
-                        setFormData({ ...formData, last_name: e.target.value })
-                      }
-                      placeholder="Enter last name"
+                      value={user.last_name || ""}
+                      disabled
+                      readOnly
+                      aria-readonly="true"
                     />
                   </div>
                 </div>
+                <p className="text-sm text-muted-foreground">
+                  Name changes are disabled because your name is tied to KYC
+                  verification.
+                </p>
 
                 <div className="flex gap-3">
                   <Button onClick={handleSave} disabled={saving}>
-                    {saving ? "Saving..." : "Save Changes"}
+                    {saving ? "Saving..." : "Save Profile Picture"}
                   </Button>
                   <Button
                     variant="outline"
                     onClick={() => {
                       setEditing(false);
                       setFormData({
-                        first_name: user.first_name || "",
-                        last_name: user.last_name || "",
                         profile_picture: user.profile_picture || "",
                       });
                     }}
@@ -583,6 +579,51 @@ function ProfileSection() {
           </div>
         </CardContent>
       </Card>
+
+      {user.role === "teacher" && teacherProfile && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Gig Application Limit</CardTitle>
+            <CardDescription>
+              Jobs are unlimited. This limit applies only to gig applications.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-4 sm:grid-cols-3">
+              <div className="rounded-lg bg-muted/50 p-4">
+                <p className="text-sm font-medium text-muted-foreground">
+                  Free Limit
+                </p>
+                <p className="mt-1 text-2xl font-semibold">
+                  {teacherProfile.free_gig_application_limit ?? 5}
+                </p>
+              </div>
+              <div className="rounded-lg bg-muted/50 p-4">
+                <p className="text-sm font-medium text-muted-foreground">Used</p>
+                <p className="mt-1 text-2xl font-semibold">
+                  {teacherProfile.gig_applications_used ?? 0}
+                </p>
+              </div>
+              <div className="rounded-lg bg-muted/50 p-4">
+                <p className="text-sm font-medium text-muted-foreground">
+                  Available
+                </p>
+                <p className="mt-1 text-2xl font-semibold">
+                  {teacherProfile.is_premium
+                    ? "Unlimited"
+                    : teacherProfile.gig_applications_available ?? 0}
+                </p>
+              </div>
+            </div>
+            {!teacherProfile.is_premium &&
+              (teacherProfile.gig_applications_available ?? 0) <= 0 && (
+                <Button className="mt-4" onClick={() => navigateToPremium()}>
+                  Upgrade to Premium
+                </Button>
+              )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Account Status */}
       <Card>

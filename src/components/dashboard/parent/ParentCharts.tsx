@@ -32,6 +32,26 @@ const CHART_COLORS = {
 
 const PIE_COLORS = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6"];
 
+const asPieData = (
+  data: unknown,
+  nameKey = "name",
+  valueKey = "value"
+) => {
+  if (Array.isArray(data)) {
+    return data.map((item: any) => ({
+      name: item[nameKey] ?? item.subject ?? item.grade ?? "Unknown",
+      value: Number(item[valueKey] ?? item.amount ?? item.count ?? 0),
+    }));
+  }
+
+  return Object.entries((data as Record<string, unknown>) || {}).map(
+    ([name, value]) => ({
+      name: name.charAt(0).toUpperCase() + name.slice(1),
+      value: Number(value || 0),
+    })
+  );
+};
+
 interface ParentChartsProps {
   chartType: "spending" | "gigs" | "applications";
   onChartTypeChange: (type: "spending" | "gigs" | "applications") => void;
@@ -47,6 +67,15 @@ export function ParentCharts({
   charts,
   distributions,
 }: ParentChartsProps) {
+  const gigTrendData = charts?.gig_trends || charts?.gig_creation || [];
+  const applicationTrendData = charts?.application_trends || [];
+  const gigsByStatus = asPieData(distributions?.gigs_by_status);
+  const spendingBySubject = asPieData(
+    distributions?.spending_by_subject || distributions?.gigs_by_subject,
+    "subject",
+    "amount"
+  );
+
   return (
     <>
       {/* Main Chart */}
@@ -61,8 +90,8 @@ export function ParentCharts({
               {(chartType === "spending"
                 ? charts?.spending_trends
                 : chartType === "gigs"
-                ? charts?.gig_trends
-                : charts?.application_trends
+                ? gigTrendData
+                : applicationTrendData
               )?.length || 0}{" "}
               data points
             </Badge>
@@ -135,7 +164,7 @@ export function ParentCharts({
                 )}
 
                 {chartType === "gigs" && (
-                  <BarChart data={charts?.gig_trends}>
+                  <BarChart data={gigTrendData}>
                     <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
                     <XAxis dataKey="month" />
                     <YAxis />
@@ -149,7 +178,7 @@ export function ParentCharts({
                 )}
 
                 {chartType === "applications" && (
-                  <LineChart data={charts?.application_trends}>
+                  <LineChart data={applicationTrendData}>
                     <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
                     <XAxis dataKey="month" />
                     <YAxis />
@@ -188,12 +217,7 @@ export function ParentCharts({
             <ResponsiveContainer width="100%" height={300}>
               <PieChart>
                 <Pie
-                  data={Object.entries(
-                    distributions?.gigs_by_status || {}
-                  ).map(([name, value]) => ({
-                    name: name.charAt(0).toUpperCase() + name.slice(1),
-                    value,
-                  }))}
+                  data={gigsByStatus}
                   cx="50%"
                   cy="50%"
                   labelLine={false}
@@ -204,7 +228,7 @@ export function ParentCharts({
                   fill="#8884d8"
                   dataKey="value"
                 >
-                  {Object.keys(distributions?.gigs_by_status || {}).map(
+                  {gigsByStatus.map(
                     (_, index) => (
                       <Cell
                         key={`cell-${index}`}
@@ -228,12 +252,7 @@ export function ParentCharts({
             <ResponsiveContainer width="100%" height={300}>
               <PieChart>
                 <Pie
-                  data={Object.entries(
-                    distributions?.spending_by_subject || {}
-                  ).map(([name, value]) => ({
-                    name,
-                    value,
-                  }))}
+                  data={spendingBySubject}
                   cx="50%"
                   cy="50%"
                   labelLine={false}
@@ -244,7 +263,7 @@ export function ParentCharts({
                   fill="#8884d8"
                   dataKey="value"
                 >
-                  {Object.keys(distributions?.spending_by_subject || {}).map(
+                  {spendingBySubject.map(
                     (_, index) => (
                       <Cell
                         key={`cell-${index}`}

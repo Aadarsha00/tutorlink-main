@@ -25,6 +25,8 @@ import {
   Calendar03Icon,
 } from "@hugeicons/core-free-icons";
 import api, { type User } from "@/services/api";
+import { toast } from "sonner";
+import { AdminUserDetailsDialog } from "./AdminUserDetailsDialog";
 
 export default function AdminTeachersPage() {
   const [teachers, setTeachers] = React.useState<User[] | null>(null);
@@ -32,6 +34,7 @@ export default function AdminTeachersPage() {
   const [searchTerm, setSearchTerm] = React.useState("");
   const [roleFilter, setRoleFilter] = React.useState<string>("all");
   const [statusFilter, setStatusFilter] = React.useState<string>("all");
+  const [selectedUser, setSelectedUser] = React.useState<User | null>(null);
 
   React.useEffect(() => {
     loadData();
@@ -87,6 +90,15 @@ export default function AdminTeachersPage() {
         {config.label}
       </span>
     );
+  };
+
+  const showDetails = async (userId: number) => {
+    try {
+      const user = await api.users.getById(userId);
+      setSelectedUser(user);
+    } catch (error: any) {
+      toast.error(error.response?.data?.detail || "Failed to load user details");
+    }
   };
 
   if (loading) {
@@ -230,7 +242,11 @@ export default function AdminTeachersPage() {
                             </div>
                           </div>
                         </div>
-                        <Button variant="outline" size="sm">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => showDetails(teacher.id)}
+                        >
                           View Details
                         </Button>
                       </div>
@@ -241,6 +257,17 @@ export default function AdminTeachersPage() {
             )}
           </CardContent>
         </Card>
+        <AdminUserDetailsDialog
+          user={selectedUser}
+          onOpenChange={(open) => !open && setSelectedUser(null)}
+          onUserUpdated={(updated) => {
+            setTeachers((current) =>
+              current?.map((item) => (item.id === updated.id ? updated : item)) ||
+              null
+            );
+            setSelectedUser(updated);
+          }}
+        />
       </div>
     </div>
   );

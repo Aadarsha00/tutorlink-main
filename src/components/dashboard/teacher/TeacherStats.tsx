@@ -18,11 +18,18 @@ const formatCurrency = (value: number | undefined | null) =>
   `Rs. ${formatNumber(value)}`;
 
 export function TeacherStats({ summary }: TeacherStatsProps) {
+  const applicationLimitLabel = summary?.is_premium
+    ? "Unlimited"
+    : formatNumber(summary?.free_gig_application_limit ?? 5);
+  const applicationsAvailableLabel = summary?.is_premium
+    ? "Unlimited gig applications available"
+    : `${formatNumber(summary?.gig_applications_available)} free available`;
+
   const stats = [
     {
       label: "Total Applications",
-      value: formatNumber(summary?.total_applications),
-      subValue: `${formatNumber(summary?.recent_applications)} recent`,
+      value: `${formatNumber(summary?.gig_applications_used ?? summary?.total_applications)} / ${applicationLimitLabel}`,
+      subValue: `${applicationsAvailableLabel} • ${formatNumber(summary?.recent_applications)} recent`,
       icon: Briefcase01Icon,
       color: "blue",
     },

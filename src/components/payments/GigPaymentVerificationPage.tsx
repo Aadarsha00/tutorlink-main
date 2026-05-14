@@ -20,6 +20,7 @@ export function PaymentVerificationPage() {
   const [debugInfo, setDebugInfo] = React.useState<string>("");
 
   const navigate = useNavigate();
+  const isBoostPayment = window.location.pathname.includes("gig-boost");
 
   React.useEffect(() => {
     // Get pidx from URL params
@@ -48,7 +49,9 @@ export function PaymentVerificationPage() {
           : `Still verifying... (Attempt ${attempt + 1}/${maxAttempts})`
       );
 
-      const response = await api.gigPayments.verify(pidx);
+      const response = isBoostPayment
+        ? await api.gigBoost.verify(pidx)
+        : await api.gigPayments.verify(pidx);
 
       if (response.success) {
         setSuccess(true);
@@ -163,8 +166,9 @@ export function PaymentVerificationPage() {
               Payment Successful!
             </h3>
             <p className="text-muted-foreground mb-6">
-              Your payment has been confirmed. You can now access the teacher's
-              contact details.
+              {isBoostPayment
+                ? "Your gig boost is active. Teachers will see this gig higher in the list."
+                : "Your payment has been confirmed. You can now access the teacher's contact details."}
             </p>
             <Button
               onClick={() => navigate("/parent/gigs")}

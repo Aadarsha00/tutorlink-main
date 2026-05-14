@@ -586,7 +586,14 @@ function ApplicationCard({
             {/* Header */}
             <div className="flex items-start justify-between">
               <div>
-                <h3 className="font-semibold text-lg">{profile.full_name}</h3>
+                <div className="flex flex-wrap items-center gap-2">
+                  <h3 className="font-semibold text-lg">{profile.full_name}</h3>
+                  {profile.is_premium && (
+                    <Badge className="border-emerald-300 bg-emerald-100 text-emerald-700">
+                      Premium
+                    </Badge>
+                  )}
+                </div>
                 <div className="flex items-center gap-2 mt-1">
                   <div className="flex items-center gap-1">
                     <HugeiconsIcon

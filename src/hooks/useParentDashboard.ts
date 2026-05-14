@@ -59,13 +59,16 @@ export function useParentDashboard() {
   const loadDashboardData = async (customFilters?: {
     date_from?: string;
     date_to?: string;
+    forceAll?: boolean;
   }) => {
     try {
       setFilterLoading(true);
       setError(null);
 
       let filters;
-      if (customFilters) {
+      if (customFilters?.forceAll) {
+        filters = undefined;
+      } else if (customFilters) {
         filters = customFilters;
       } else if (timeRange !== "all") {
         filters = calculateDateRange(timeRange);
@@ -99,7 +102,9 @@ export function useParentDashboard() {
       setShowCustomDate(false);
       setDateFrom("");
       setDateTo("");
-      loadDashboardData();
+      const nextFilters =
+        value === "all" ? { forceAll: true } : calculateDateRange(value);
+      loadDashboardData(nextFilters);
     }
   };
 
